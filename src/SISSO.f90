@@ -17,17 +17,17 @@ program SISSO
     use FC
     use DI
     use ifport
-!-------------------
+    !-------------------
 
     integer i, j, k, l, icontinue, iostatus, datalen
     character tcontinue*2, nsample_line*500, isconvex_line*500, funit*500, sysdate*8, systime*10
     logical fexist
 
-! mpi initialization
+    ! mpi initialization
     call mpi_init(mpierr)
     call mpi_comm_size(mpi_comm_world, mpisize, mpierr)
     call mpi_comm_rank(mpi_comm_world, mpirank, mpierr)
-!---
+    !---
 
     call random_seed()
     call initialization  ! parameters initialization
@@ -49,7 +49,7 @@ program SISSO
         write (9, '(a/)') '****************************************************************'
     end if
 
-! array allocation
+    ! array allocation
     allocate (nsample(ntask))  ! for regression, # samples for each task
     allocate (ngroup(ntask, 1000))  ! for classification, # samples in each group of a task
     allocate (isconvex(ntask, 1000))
@@ -71,9 +71,9 @@ program SISSO
     call read_data  ! from train.dat (and train_vf.dat, reaction.dat if available)
     if (mpirank == 0) call output_para ! output the parameters setting to SISSO.out
 
-!---------------------
-! FC and DI starts ...
-!---------------------
+    !---------------------
+    ! FC and DI starts ...
+    !---------------------
 
     if (restart == 1) then
         open (fileunit, file='CONTINUE', status='old')
@@ -89,14 +89,14 @@ program SISSO
         icontinue = 1
         tcontinue = 'FC'
         if (mpirank == 0) then
-            iostatus = makedirqq('desc_dat')
+            iostatus = makedirqq('desc_dat') ! create directory with specified names (ifport)
             iostatus = makedirqq('SIS_subspaces')
             iostatus = makedirqq('models')
-!     iostatus=makedirqq('residual')
+            ! iostatus=makedirqq('residual')
         end if
     end if
 
-! iterations
+    ! iterations
     do iFCDI = icontinue, desc_dim
         if (mpirank == 0) then
             write (*, '(/a,i3)') 'Dimension: ', iFCDI
@@ -190,30 +190,30 @@ contains
                 write (line_short1, '(a,i3.3,a,i3.3,a)') 'desc_', iFCDI - 1, 'd_p', i, '.dat'
                 write (line_short2, '(a,i3.3,a,i3.3,a)') 'res_', iFCDI - 1, 'd_p', i, '.dat'
                 open (fileunit, file='desc_dat/'//trim(adjustl(line_short1)), status='old')
-!     open(1,file='residual/'//trim(adjustl(line_short2)),status='replace')
+                ! open(1,file='residual/'//trim(adjustl(line_short2)),status='replace')
                 read (fileunit, *)
                 if (nreaction == 0) then
                     do l = 1, nsample(k)
                         read (fileunit, '(a)') line_long
                         if (ptype == 1) then
                             read (line_long, *) ntmp, rtmp, fit(sum(nsample(:k - 1)) + l)
-!                write(1,'(e20.10)') prop_y(sum(nsample(:k-1))+l)-fit(sum(nsample(:k-1))+l)
+                            ! write(1,'(e20.10)') prop_y(sum(nsample(:k-1))+l)-fit(sum(nsample(:k-1))+l)
                         else if (ptype == 2) then
                             if (index(line_long, 'YES') /= 0) line_long(index(line_long, 'YES'):index(line_long, 'YES') + 2) = '  1'
                             if (index(line_long, 'NO') /= 0) line_long(index(line_long, 'NO'):index(line_long, 'NO') + 1) = ' 0'
                             read (line_long, *) ntmp, res(sum(nsample(:k - 1)) + l)
-!                write(1,'(e20.10)') res(sum(nsample(:k-1))+l)
+                            ! write(1,'(e20.10)') res(sum(nsample(:k-1))+l)
                         end if
                     end do
                 elseif (nreaction > 0) then   ! for ptype=1 only
                     do l = 1, nreaction
                         read (fileunit, '(a)') line_long
                         read (line_long, *) ntmp, rtmp, fit(l)
-!            write(1,'(e20.10)') prop_y(l)-fit(l)
+                        ! write(1,'(e20.10)') prop_y(l)-fit(l)
                     end do
                 end if
                 close (fileunit)
-!     close(1)
+                ! close(1)
             end do
             if (ptype == 1) res = prop_y - fit
         end if
@@ -227,7 +227,7 @@ contains
 
         IF (nsis(iFCDI) == 0) return
 
-! Uspace - feature expressions
+        ! Uspace - feature expressions
         if (iFCDI == 1) then
             open (1, file='SIS_subspaces/Uspace.expressions', status='replace')
         else
@@ -242,7 +242,7 @@ contains
         close (1)
         close (2)
 
-! Uspace - feature data
+        ! Uspace - feature data
         i = 0
         do k = 1, ntask
             i = i + 1
@@ -326,7 +326,7 @@ contains
         integer i, j, k, l, ioerr
         character line_short*500
 
-!read parameters from SISSO.in
+        !read parameters from SISSO.in
         open (fileunit, file='SISSO.in', status='old')
         do while (.true.)
             read (fileunit, '(a)', iostat=ioerr) line_short
@@ -409,7 +409,7 @@ contains
                     read (line_short(i + 1:), *, err=1001) nl1l0
                 case ('nreaction')
                     read (line_short(i + 1:), *, err=1001) nreaction
-!--
+                !--
                 case ('L1_max_iter')
                     read (line_short(i + 1:), *, err=1001) L1_max_iter
                 case ('L1_tole')
@@ -450,10 +450,10 @@ contains
     end subroutine
 
     subroutine read_para_b
-! get the input for nsample and funit
+        ! get the input for nsample and funit
         integer*8 i, j, k, kk, l, ll
 
-! nsample
+        ! nsample
         nsample = 0
         ngroup = 0
         isconvex = 1
@@ -486,7 +486,7 @@ contains
 
         end if
 
-! funit
+        ! funit
         feature_units = 0.d0   ! dimensionless for default
         do ll = 1, ndimtype
             i = index(funit, '(')
@@ -562,7 +562,7 @@ contains
             close (fileunit)
         end if
 
-! read reaction.dat
+        ! read reaction.dat
         if (nreaction > 0) then
             if (mpirank == 0) write (9, '(a)') 'Read in data from reaction.dat.'
             open (fileunit, file='reaction.dat', status='old')
@@ -641,7 +641,7 @@ contains
         isconvex = (1, 1)
         bwidth = 0.001
 
-!---------------------
+        !---------------------
         nreaction = 0             ! number of reactions in reaction machine learning.
         ffdecorr = .false.        ! feature-feature decorrelation
         decorr_theta = 1.0        ! Threshold (<=1) for feature decorrelation (one of the highly correlated feature will be removed).
@@ -657,14 +657,14 @@ contains
         L1_warm_start = .true.    ! using previous solution for the next step
         L1_weighted = .false.     ! weighted observations? (provide file prop.weight if yes)
         nsis = 0
-!----------------------
+        !----------------------
 
     end subroutine
 
     subroutine output_para
-!----------------------
-! output the parameters
-!----------------------
+        !----------------------
+        ! output the parameters
+        !----------------------
 2001    format(a, *(i8))
 2002    format(*(f6.2))
 2003    format(a, i3, a, *(i5))
@@ -706,7 +706,7 @@ contains
             write (9, '(a,f15.5)') 'Correlation threshold for feature decorrelation: ', decorr_theta
             write (9, '(a,f15.5)') 'Size of the score-window for feature decorrelation: ', decorr_delta
             write (9, '(a,f15.5)') 'Selecting alpha*nf_sis features to ensure the final size being &
-      &          nf_sis after decorrelation: ', decorr_alpha
+                            & nf_sis after decorrelation: ', decorr_alpha
         end if
         write (9, 2001) 'Size of the SIS-selected (single) subspace : ', nf_sis(:desc_dim)
         write (9, 2004) 'Operators for feature construction: ', (trim(ops(j)), ' ', j=1, rung)

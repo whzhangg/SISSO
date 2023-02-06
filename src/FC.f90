@@ -11,14 +11,15 @@
 ! limitations under the License.
 
 module FC
-! feature construction
-!----------------------------------------------------------------------
+    ! feature construction
+    !----------------------------------------------------------------------
 
     use var_global
     use libsisso
-! variables for this module
-    integer*8 ntot, nthis, nreject, nvf_new, nfinal_select, nbasic_select, nextra_select, nselect, icomb
- real*8, allocatable:: trainy(:), trainy_c(:), fout(:, :), dim_out(:, :), vfeat(:, :, :), f_select(:, :), score_select(:, :), tag(:)
+    ! variables for this module
+    integer*8           ntot, nthis, nreject, nvf_new, nfinal_select, nbasic_select, nextra_select, nselect, icomb
+    real*8, allocatable :: trainy(:), trainy_c(:), fout(:, :), dim_out(:, :), vfeat(:, :, :)
+    real*8, allocatable :: f_select(:, :), score_select(:, :), tag(:)
     character(len=lname), allocatable::  name_out(:), lastop_out(:)*10, name_select(:), reject(:)
     integer*8, allocatable:: complexity_out(:), mpin(:), mpin2(:), complexity_select(:), usedup_warning(:)
     logical threshold_select, foutsave
@@ -37,7 +38,7 @@ contains
         character(len=lname), allocatable:: name_sisfeat(:), name_in1(:), lastop_in1(:)*10
         logical, allocatable:: available(:)
 
-! Stop if the whole feature space had been selected.
+        ! Stop if the whole feature space had been selected.
         IF (iFCDI > 1 .and. nsis(iFCDI - 1) < nf_sis(iFCDI - 1)) THEN
             if (mpirank == 0) then
                 write (*, '(a)') 'Warning: Last selected subspace < nf_sis! No more FC will be performed.'
@@ -46,12 +47,12 @@ contains
             return
         end if
 
-! running time for FC
+        ! running time for FC
         if (mpirank == 0) stime_FC = mpi_wtime()
 
-!------------------------------------------------------
-! array allocation
-!------------------------------------------------------
+        !------------------------------------------------------
+        ! array allocation
+        !------------------------------------------------------
         allocate (trainy(npoints))
         allocate (trainy_c(npoints))
         i = max(1000, nsf + nvf)
@@ -99,8 +100,8 @@ contains
         allocate (tag(sum(nsample)))
         allocate (usedup_warning(mpisize))
 
-! initialization
-!------------------
+        ! initialization
+        !------------------
         dim_in1(:, :nsf + nvf) = feature_units
         threshold_select = .false.
         nvf_new = nvf
@@ -108,7 +109,7 @@ contains
         name_in1(:nsf + nvf) = pfname(:nsf + nvf)
         trainy = res
 
-! A vector to asist redundant check
+        ! A vector to asist redundant check
         do j = 1, ntask
         do i = 1, nsample(j)
             tag(sum(nsample(:j - 1)) + i) = 1.0d0 + 0.001d0*i
@@ -123,7 +124,7 @@ contains
             end do
         end if
 
-! avoid repetition of features from a existing space
+        ! avoid repetition of features from a existing space
         inquire (file='SIS_subspaces/reject.expressions', exist=lreject)
         if (lreject) then
             rejectname = 'SIS_subspaces/reject.expressions'
@@ -132,7 +133,7 @@ contains
             if (iFCDI > 1) inquire (file='SIS_subspaces/Uspace.expressions', exist=lreject)
             if (lreject) then
                 rejectname = 'SIS_subspaces/Uspace.expressions'
-!   if(mpirank==0) write(9,'(2a)') 'File containing the features to be rejected: ',trim(rejectname)
+            ! if(mpirank==0) write(9,'(2a)') 'File containing the features to be rejected: ',trim(rejectname)
             end if
         end if
 
@@ -174,10 +175,10 @@ contains
         if (mpirank /= 0 .and. nreject > 0) allocate (reject(nreject))
         if (nreject > 0) call mpi_bcast(reject, nreject*lname, mpi_character, 0, mpi_comm_world, mpierr)
 
-!------------------------------------------------------------
-! Population Standard Deviation
-! For rough guess of fitting quality by comparing with RMSE
-!------------------------------------------------------------
+        !------------------------------------------------------------
+        ! Population Standard Deviation
+        ! For rough guess of fitting quality by comparing with RMSE
+        !------------------------------------------------------------
 2000    format(a, i3.3, a, *(f10.5))
 
         if (nreaction == 0) then
@@ -196,10 +197,10 @@ contains
                 write (9, 2000) 'Population Standard Deviation (SD) of task ', j, ': ', SD(j)
         end if
 
-!-------------------------------------------------------------------------
-! feature combinations start ...
-! \PHI0 is the initial primary feature space
-!-------------------------------------------------------------------------
+        !-------------------------------------------------------------------------
+        ! feature combinations start ...
+        ! \PHI0 is the initial primary feature space
+        !-------------------------------------------------------------------------
         nselect = 0 ! # of selected features
         nf = 0      ! # generated features from each combination
         foutsave = .true.   ! save the generated features for this combination ?
@@ -210,7 +211,7 @@ contains
         i = nsf + nvf ! total number of primary features
         j = 0
 
-! no combination, but to check if primary features are good to be included in the 'selected' set.
+        ! no combination, but to check if primary features are good to be included in the 'selected' set.
         call combine(feat_in1(:, 1:i), name_in1(1:i), lastop_in1(1:i), complexity_in1(1:i), dim_in1(:, 1:i), &
                      feat_in1(:, 1:i), name_in1(1:i), lastop_in1(1:i), complexity_in1(1:i), dim_in1(:, 1:i), 'NO', j)
 
@@ -228,9 +229,9 @@ contains
             deallocate (dim_out)
         end if
 
-!-------------------------
-!creating PHI1, PHI2, ...
-!-------------------------
+        !-------------------------
+        !creating PHI1, PHI2, ...
+        !-------------------------
         do icomb = 1, rung
             if (mpirank == 0) write (*, '(/a,i2.2,a)') 'Generating phi', icomb, ' ...'
 
@@ -538,9 +539,9 @@ contains
             END IF
 
         end do
-! -------- end of feature combination ------
+        ! -------- end of feature combination ------
 
-! release spaces
+        ! release spaces
         deallocate (feat_in1)
         deallocate (name_in1)
         deallocate (lastop_in1)
@@ -549,9 +550,9 @@ contains
 
         if (nvf > 0) deallocate (vfeat)
 
-!---------------------------------------------------------------
-!  collect the information of selected features from all cores
-!---------------------------------------------------------------
+        !---------------------------------------------------------------
+        !  collect the information of selected features from all cores
+        !---------------------------------------------------------------
 
         if (rung == 0) then
             nfpcore_this = nselect
@@ -577,29 +578,29 @@ contains
 
         call mpi_bcast(nfpcore_this, mpisize, mpi_integer8, 0, mpi_comm_world, mpierr)
         call mpi_barrier(mpi_comm_world, mpierr)
-!-----------------------------------------------------------------------------
-! saved information for selected features on each core ->
-! nselect: number of features selected on each core
-! f_select: selected features data on each core
-! complexity_select: complexity of the selected features on each core
-! name_select: name of the selected features on each core
-! score_select: score of the selected features on each core
+        !-----------------------------------------------------------------------------
+        ! saved information for selected features on each core ->
+        ! nselect: number of features selected on each core
+        ! f_select: selected features data on each core
+        ! complexity_select: complexity of the selected features on each core
+        ! name_select: name of the selected features on each core
+        ! score_select: score of the selected features on each core
 
-! redundant check for selected features
-!---------------------------------------
+        ! redundant check for selected features
+        !---------------------------------------
         allocate (available(nfpcore_this(mpirank + 1)))
         available = .true.
         allocate (order(nfpcore_this(mpirank + 1) + 1))
 
-! serial check
+        ! serial check
         call dup_scheck(nfpcore_this(mpirank + 1), score_select, name_select, complexity_select, order, available, 'selected')
 
-! parallel redundant check
+        ! parallel redundant check
         if (mpisize > 1) call dup_pcheck(nfpcore_this, score_select, name_select, complexity_select, order, available, 'selected')
 
-!---------------------------------------
-! sure independence screening
-!---------------------------------------
+        !---------------------------------------
+        ! sure independence screening
+        !---------------------------------------
         if (mpirank == 0) then
             allocate (sisfeat(npoints, nf_sis(iFCDI)))
             allocate (name_sisfeat(nf_sis(iFCDI)))
@@ -607,11 +608,11 @@ contains
 
         call sure_indep_screening(nfpcore_this, available, complexity_select, name_select, f_select, sisfeat, name_sisfeat)
 
-!--------------------------------------
-!--------------------------------------
-! output of the selected feature space
-!--------------------------------------
-!--------------------------------------
+        !--------------------------------------
+        !--------------------------------------
+        ! output of the selected feature space
+        !--------------------------------------
+        !--------------------------------------
         if (mpirank == 0) then
             ! output space.expressions
             write (line, '(a,i3.3,a)') 'space_', iFCDI, 'd.expressions'
@@ -676,7 +677,7 @@ contains
                 write (9, '(/a,i5,a/)') 'Warning: local subspaces used up by SIS. Please increase decorr_alpha and rerun SISSO'
         end if
 
-! release all the spaces
+        ! release all the spaces
         deallocate (trainy)
         deallocate (trainy_c)
         deallocate (f_select)
@@ -727,7 +728,7 @@ contains
 
         do i = 1, nfin1
 
-! no operation
+            ! no operation
             IF (trim(adjustl(op)) == 'NO') THEN
                 lastop_tmp = ''
                 compl_tmp = compl_in1(i)
@@ -743,8 +744,8 @@ contains
                 cycle
             END IF
 
-! unary operators
-! element-wise operation on vector features
+            ! unary operators
+            ! element-wise operation on vector features
             counter = counter + 1
             compl_tmp = compl_in1(i) + 1
             if (compl_tmp > fcomplexity) goto 599
@@ -1138,7 +1139,8 @@ contains
                             k = index(name_in1(i), trim(adjustl(name_in2(j))))
                             kk = len_trim(name_in1(i) (k:))
                             kkk = len_trim(adjustl(name_in2(j)))
-           if ((l == 2 .and. name_in1(i) (k + kkk:k + kkk) == '*') .or. (kk == kkk + 1 .and. name_in1(i) (k - 1:k - 1) == '*')) then
+                            if ((l == 2 .and. name_in1(i) (k + kkk:k + kkk) == '*') .or. &
+                                (kk == kkk + 1 .and. name_in1(i) (k - 1:k - 1) == '*')) then
                                 if (index(op, '(^-1)') /= 0) then
                                     goto 602
                                 else
@@ -1154,7 +1156,8 @@ contains
                             k = index(name_in2(j), trim(adjustl(name_in1(i))))
                             kk = len_trim(name_in2(j) (k:))
                             kkk = len_trim(adjustl(name_in1(i)))
-           if ((l == 2 .and. name_in2(j) (k + kkk:k + kkk) == '*') .or. (kk == kkk + 1 .and. name_in2(j) (k - 1:k - 1) == '*')) then
+                            if ((l == 2 .and. name_in2(j) (k + kkk:k + kkk) == '*') .or. &
+                                (kk == kkk + 1 .and. name_in2(j) (k - 1:k - 1) == '*')) then
                                 if (index(op, '(^-1)') /= 0) then
                                     goto 602
                                 else
@@ -1253,10 +1256,10 @@ contains
 
         goodf = .true.
 
-! delete constant/zero/infinity features
-!do ll=1,ntask
-!  mm1=sum(nsample(:ll-1))+1
-!  mm2=sum(nsample(:ll))
+        ! delete constant/zero/infinity features
+        ! do ll=1,ntask
+        !  mm1=sum(nsample(:ll-1))+1
+        !  mm2=sum(nsample(:ll))
         mm1 = 1
         mm2 = sum(nsample(:ntask))
         if (maxval(abs(feat(mm1:mm2) - feat(mm1))) <= 1d-8) then
@@ -1268,9 +1271,9 @@ contains
             goodf = .false. ! intinity or zero
             return
         end if
-!end do
+        !end do
 
-! not to be selected but can be used for further transformation
+        ! not to be selected but can be used for further transformation
         if (maxabs > fmax_max .or. maxabs < fmax_min) return
 
         if (nreaction == 0) then
@@ -1289,7 +1292,7 @@ contains
             if (scoretmp(1) < score_select(nfinal_select, 1)) return
         end if
 
-!----
+        !----
         if (nreject > 0) then
             name_feat = adjustl(name_feat)
             lsame = .false.
@@ -1313,9 +1316,9 @@ contains
             if (lsame) return
         end if
 
-!--------------------------
-! selected
-!--------------------------
+        !--------------------------
+        ! selected
+        !--------------------------
         nselect = nselect + 1
         if (nreaction == 0) then
             f_select(:, nselect) = feat
@@ -1333,7 +1336,7 @@ contains
     end function
 
     subroutine addm_out(n)
-! increase array size
+        ! increase array size
         real*8, allocatable:: real2d(:, :)
         integer*8, allocatable:: integer1d(:)
         character(len=lname), allocatable:: char1d(:), char1d2(:)*10
@@ -1341,38 +1344,38 @@ contains
         i = ubound(fout, 1)
         j = ubound(fout, 2)
 
-! fout
+        ! fout
         allocate (real2d(i, j))
         real2d = fout
         deallocate (fout)
         allocate (fout(i, j + n))
         fout(:, :j) = real2d
         deallocate (real2d)
-!-----
-!name_out
+        !-----
+        !name_out
         allocate (char1d(j))
         char1d = name_out
         deallocate (name_out)
         allocate (name_out(j + n))
         name_out(:j) = char1d
         deallocate (char1d)
-!----
-!lastop_out
+        !----
+        !lastop_out
         allocate (char1d2(j))
         char1d2 = lastop_out
         deallocate (lastop_out)
         allocate (lastop_out(j + n))
         lastop_out(:j) = char1d2
         deallocate (char1d2)
-!----
-!complexity_out
+        !----
+        !complexity_out
         allocate (integer1d(j))
         integer1d = complexity_out
         deallocate (complexity_out)
         allocate (complexity_out(j + n))
         complexity_out(:j) = integer1d
         deallocate (integer1d)
-!dim_out
+        ! dim_out
         i = ubound(dim_out, 1)
         allocate (real2d(i, j))
         real2d = dim_out
@@ -1380,11 +1383,11 @@ contains
         allocate (dim_out(i, j + n))
         dim_out(:, :j) = real2d
         deallocate (real2d)
-!--
+        !--
     end subroutine
 
     subroutine addm_in1(n, fin1, name_in1, lastop_in1, complexity_in1, dim_in1)
-! increase array size
+        ! increase array size
         real*8, allocatable:: real2d(:, :), fin1(:, :), dim_in1(:, :)
         integer*8, allocatable:: integer1d(:), complexity_in1(:)
         character(len=lname), allocatable:: char1d(:), char1d2(:)*10
@@ -1393,38 +1396,38 @@ contains
         i = ubound(fin1, 1)
         j = ubound(fin1, 2)
 
-! fin1
+        ! fin1
         allocate (real2d(i, j))
         real2d = fin1
         deallocate (fin1)
         allocate (fin1(i, j + n))
         fin1(:, :j) = real2d
         deallocate (real2d)
-!-----
-!name_in1
+        !-----
+        !name_in1
         allocate (char1d(j))
         char1d = name_in1
         deallocate (name_in1)
         allocate (name_in1(j + n))
         name_in1(:j) = char1d
         deallocate (char1d)
-!----
-!lastop_in1
+        !----
+        !lastop_in1
         allocate (char1d2(j))
         char1d2 = lastop_in1
         deallocate (lastop_in1)
         allocate (lastop_in1(j + n))
         lastop_in1(:j) = char1d2
         deallocate (char1d2)
-!---
-!complexity_in1
+        !---
+        !complexity_in1
         allocate (integer1d(j))
         integer1d = complexity_in1
         deallocate (complexity_in1)
         allocate (complexity_in1(j + n))
         complexity_in1(:j) = integer1d
         deallocate (integer1d)
-!dim_in1
+        !dim_in1
         i = ubound(dim_in1, 1)
         allocate (real2d(i, j))
         real2d = dim_in1
@@ -1432,11 +1435,11 @@ contains
         allocate (dim_in1(i, j + n))
         dim_in1(:, :j) = real2d
         deallocate (real2d)
-!--
+        !--
     end subroutine
 
     subroutine addm_vf(n)
-! increase array size for vector feature
+        ! increase array size for vector feature
         real*8, allocatable:: real3d(:, :, :)
         integer*8 i, j, k, n
         i = ubound(vfeat, 1)
@@ -1451,8 +1454,8 @@ contains
     end subroutine
 
     function dimcomb(dim1, dim2, op)
-! calculate the unit for the new feature
-! unary operator: set dim1 and dim2 the same
+        ! calculate the unit for the new feature
+        ! unary operator: set dim1 and dim2 the same
         real*8 dim1(:), dim2(:), dimcomb(ubound(dim1, 1))
         character(len=*) op
         integer i, j, k
@@ -1497,7 +1500,7 @@ contains
         integer*8 i, j, k
         character(len=*) phiname
         if (nvf > 0) write (*, '(a,i15)') 'Total Number vector features: ', j
-!write(*,'(a,i15)') 'Total mumber of selected features by SIS: ',i
+        !write(*,'(a,i15)') 'Total mumber of selected features by SIS: ',i
         write (*, '(3a,i15)') 'Total number of features in the space ', trim(phiname), ':', k
         write (9, '(3a,i15)') 'Total number of features in the space ', trim(phiname), ':', k
     end subroutine
@@ -1555,7 +1558,7 @@ contains
             do k = 1, mpisize - 1
 
                 ! time recording
-!     if(mpirank==0) time_start=mpi_wtime()
+                ! if(mpirank==0) time_start=mpi_wtime()
                 if (nfpcore_this(mpiloc(k)) > 0) then
                     ! allocate arrays
                     allocate (compidentity(nfpcore_this(mpiloc(k)), 2))
@@ -1571,7 +1574,8 @@ contains
                     end if
 
                     !broadcast compidentity from core mpiloc(k)-1 to all other cores
-                call mpi_bcast(compidentity, 2*nfpcore_this(mpiloc(k)), mpi_double_precision, mpiloc(k) - 1, mpi_comm_world, mpierr)
+                    call mpi_bcast(compidentity, 2*nfpcore_this(mpiloc(k)), mpi_double_precision, mpiloc(k) - 1, &
+                        mpi_comm_world, mpierr)
                     ! broadcast the feature expressions
                     call mpi_bcast(compname, nfpcore_this(mpiloc(k))*lname, mpi_character, mpiloc(k) - 1, mpi_comm_world, mpierr)
                     ! broadcast the feature complexities
@@ -1603,8 +1607,9 @@ contains
                                     cycle
                                 end if
                                 ! if not equal
-                          if (compidentity(mpij, 1) > fidentity(order(i), 1) .or. (compidentity(mpij, 1) == fidentity(order(i), 1) &
-                                                                        .and. compidentity(mpij, 2) > fidentity(order(i), 2)) .or. &
+                                if (compidentity(mpij, 1) > fidentity(order(i), 1) .or. &
+                                    (compidentity(mpij, 1) == fidentity(order(i), 1) .and. &
+                                     compidentity(mpij, 2) > fidentity(order(i), 2)) .or. &
                                     (compidentity(mpij, 1) == fidentity(order(i), 1) .and. &
                                      compidentity(mpij, 2) == fidentity(order(i), 2) .and. simpler_result == 1)) then
                                     ll = i
@@ -1674,7 +1679,7 @@ contains
                     call mpi_recv(i, 1, mpi_integer8, k, 1, mpi_comm_world, status, mpierr)
                     j = j + i
                 end do
-!   write(*,'(a,i10)') 'Number of features after the redundant check is: ',j
+            !   write(*,'(a,i10)') 'Number of features after the redundant check is: ',j
             end if
 
         END IF
@@ -1682,7 +1687,7 @@ contains
     end subroutine
 
     subroutine sure_indep_screening(nfpcore_this, available, complexity, fname, feat, sisfeat, name_sisfeat)
-! sure independence screening
+        ! sure independence screening
         real*8 tmp, sisfeat(:, :), pscore(mpisize, 2), feat(:, :), dd1, dd2
         real*8, allocatable:: score(:, :), score_sisfeat(:, :)
         integer*8, allocatable:: complexity_sisfeat(:)
@@ -1706,7 +1711,7 @@ contains
         end do
         if (nfpcore_this(mpirank + 1) > 0) score = -1   ! initial score
 
-! get the scores
+        ! get the scores
         if (ptype == 1) then
             do k = 1, nfpcore_this(mpirank + 1)
                 if (available(k)) score(k, :) = sis_score(feat(:, k), trainy_c)
@@ -1717,7 +1722,7 @@ contains
             end do
         end if
 
-! selection starts ...
+        ! selection starts ...
         i = 0   ! count of selected features
         do while (any(pavailable) .and. i < nf_sis(iFCDI))
 
@@ -1820,7 +1825,7 @@ contains
             end if
 
         end do
-!--------------------
+        !--------------------
 
         do l = 1, mpisize
             call mpi_bcast(usedup_warning(l), 1, mpi_integer8, l - 1, mpi_comm_world, mpierr)
@@ -1836,8 +1841,8 @@ contains
     end subroutine
 
     subroutine dup_scheck(nf, fidentity, fname, complexity, order, available, ftype)
-! duplication check
-! output order and available
+        ! duplication check
+        ! output order and available
         integer*8 i, j, l, ll, order(:), n, nf, complexity(:), simpler_result
         real*8 fidentity(:, :)
         character(len=*) fname(:), ftype
@@ -1941,8 +1946,8 @@ contains
     end subroutine
 
     function sis_score(feat, yyy)
-! correlation between a feature feat and the property yyy
-! sis_score returns a vector with 2 elements
+        ! correlation between a feature feat and the property yyy
+        ! sis_score returns a vector with 2 elements
         integer i, j, mm1, mm2, mm3, mm4, k, kk, l, overlap_n, nf1, nf2, itask, nconvexpair
         real*8 feat(:), sdfeat(ubound(feat, 1)), tmp(ntask), sis_score(2), yyy(:), xnorm(ntask), xmean(ntask), &
             overlap_length, length_tmp, feat_tmp1(ubound(feat, 1)), feat_tmp2(ubound(feat, 1)), mindist, minlen
@@ -2027,7 +2032,8 @@ contains
                             else if (length_tmp >= 0.d0 .and. minlen > 0.d0) then  ! if not separated and no 0D feature
                                 overlap_length = overlap_length + length_tmp/minlen  ! calculate total overlap
                             end if
-                        else if (isconvex(itask, i) == 0 .and. isconvex(itask, j) == 1) then  !count the number of i-data in j-domain
+                        else if (isconvex(itask, i) == 0 .and. isconvex(itask, j) == 1) then  
+                            !count the number of i-data in j-domain
                             overlap_n = overlap_n + convex1d_in(feat(mm3:mm4), feat_tmp1(:nf1), bwidth)
                         else if (isconvex(itask, i) == 1 .and. isconvex(itask, j) == 0) then !count the number of j-data in i-domain
                             overlap_n = overlap_n + convex1d_in(feat(mm1:mm2), feat_tmp2(:nf2), bwidth)
@@ -2074,7 +2080,7 @@ contains
 
         d1 = ubound(feat, 1)
 
-! transforming vector to scalar
+        ! transforming vector to scalar
         do i = 1, d1
             if (trim(vf2sf) == 'sum') then
                 feat2(i) = sum(feat(i, :))  ! sum of elements
@@ -2117,13 +2123,13 @@ contains
     end function
 
     subroutine update_select
-! update the selected space
-! bisection method for descending order
+        ! update the selected space
+        ! bisection method for descending order
         integer*8 i, j, k, l, ll, order(nselect), n, tmp, tmpcomplexity(nbasic_select), simpler_result
         real*8 tmpf(ubound(f_select, 1), nbasic_select), tmpscore(nbasic_select, 2)
         character(len=lname) tmpname(nbasic_select)
 
-! ordering from large to small
+        ! ordering from large to small
         order(1) = 1   ! assuming the first feature being the best (highest score)
         n = 1  ! count of features saved in 'order'
 
@@ -2169,7 +2175,7 @@ contains
 
         nfinal_select = min(n, nbasic_select)
 
-! reordering
+        ! reordering
         do i = 1, nfinal_select
             tmpf(:, i) = f_select(:, order(i))
             tmpcomplexity(i) = complexity_select(order(i))
@@ -2185,7 +2191,7 @@ contains
     end subroutine
 
     function ffcorr(feat1, feat2)
-! calculate the correlation coefficient between two features
+        ! calculate the correlation coefficient between two features
         real*8 ffcorr, feat1(:), feat2(:), mean1, mean2, sd1, sd2
         integer ns
 
@@ -2200,7 +2206,7 @@ contains
     end function
 
     function equivalent(score1, score2, feat1, feat2)
-! calculate if two features are the same or highly correlated.
+        ! calculate if two features are the same or highly correlated.
         real*8 score1(:), score2(:), diff1, diff2, diff3, feat1(:), feat2(:)
         logical equivalent
 

@@ -16,22 +16,24 @@ module DI
 
     use var_global
     use libsisso
-! variables for this module
+    ! variables for this module
     integer dim_DI
 
 contains
 
     subroutine descriptor_identification
-        real*8, allocatable:: xinput(:, :, :), yinput(:, :), beta(:, :), beta_init(:, :), coeff(:, :), xprime(:, :, :), &
-                  xdprime(:, :, :), xmean(:, :), norm_xprime(:, :), yprime(:, :), prod_xty(:, :), prod_xtx(:, :, :), lassormse(:), &
-                              ymean(:), intercept(:), weight(:, :)
-        real*8 lambda, lambda_max, alpha, L1_minrmse, totalrmse
-        integer run_iter, i, j, k, l, ll, nf, maxns, ntry, nactive
-        integer, allocatable:: idf(:), activeset(:), ncol(:)
-        character line*500
+        real*8, allocatable::   xinput(:, :, :), yinput(:, :), beta(:, :), beta_init(:, :), &
+                                coeff(:, :), xprime(:, :, :), xdprime(:, :, :), xmean(:, :), &
+                                norm_xprime(:, :), yprime(:, :), prod_xty(:, :), &
+                                prod_xtx(:, :, :), lassormse(:), ymean(:), intercept(:), &
+                                weight(:, :)
+        real*8                  lambda, lambda_max, alpha, L1_minrmse, totalrmse
+        real*8                  stime_DI, etime_DI
+        integer                 run_iter, i, j, k, l, ll, nf, maxns, ntry, nactive
+        integer, allocatable::  idf(:), activeset(:), ncol(:)
+        character               line*500
         character, allocatable:: fname(:)*200
-        logical isnew, dat_readerr
-        real*8 stime_DI, etime_DI
+        logical                 isnew, dat_readerr
 
         if (mpirank == 0) stime_DI = mpi_wtime()
         if (nreaction == 0) then
@@ -41,16 +43,16 @@ contains
         end if
         dim_DI = iFCDI
 
-!--------------------------
+        !--------------------------
         allocate (xinput(maxns, fs_size_DI, ntask))
         allocate (yinput(maxns, ntask))
         allocate (fname(fs_size_DI))
         allocate (weight(maxns, ntask))
         allocate (activeset(fs_size_L0))
 
-!------------------------
-! job allocation
-!------------------------
+        !------------------------
+        ! job allocation
+        !------------------------
         allocate (ncol(mpisize))
         mpii = fs_size_DI/mpisize
         mpij = mod(fs_size_DI, mpisize)
@@ -63,9 +65,9 @@ contains
         end if
         end do
 
-!-----------------------
-! data read in
-!-----------------------
+        !-----------------------
+        ! data read in
+        !-----------------------
 
         dat_readerr = .true.
 
@@ -145,9 +147,9 @@ contains
 
         if (fs_size_L0 > fs_size_DI) stop "Error: fs_size_L0 must not larger than fs_size_DI ! "
 
-!-----------------------------------------------------
-! MODEL SELECTION (L0 or L1L0)
-!-----------------------------------------------------
+        !-----------------------------------------------------
+        ! MODEL SELECTION (L0 or L1L0)
+        !-----------------------------------------------------
 
         if (trim(adjustl(method_so)) == 'L1L0' .and. fs_size_DI /= fs_size_L0 .and. ptype == 1) then
             !----------------
@@ -286,14 +288,15 @@ contains
                 ! lasso rmse
                 do i = 1, ntask
                     if (nreaction == 0) then
-                       lassormse(i) = sqrt(sum(weight(:nsample(i), i)*(yprime(:nsample(i), i) - matmul(xdprime(:nsample(i), :, i), &
-                                                                                                beta(:, i)))**2)/nsample(i))  ! RMSE
+                       lassormse(i) = sqrt(sum(weight(:nsample(i), i)*(yprime(:nsample(i), i) &
+                                    - matmul(xdprime(:nsample(i), :, i), beta(:, i)))**2)/nsample(i))  ! RMSE
                     elseif (nreaction > 0) then
-                        lassormse(i) = sqrt(sum(weight(:nreaction, i)*(yprime(:nreaction, i) - matmul(xdprime(:nreaction, :, i), &
-                                                                                                      beta(:, i)))**2)/nreaction)  ! RMSE
+                        lassormse(i) = sqrt(sum(weight(:nreaction, i)*(yprime(:nreaction, i) &
+                                    - matmul(xdprime(:nreaction, :, i), beta(:, i)))**2)/nreaction)  ! RMSE
                     end if
                 end do
-                totalrmse = sqrt(sum(lassormse**2))  ! the 'weight' already considered the averaging.
+                totalrmse = sqrt(sum(lassormse**2))  
+                ! the 'weight' already considered the averaging.
 
                 ! L1_warm_start
                 if (L1_warm_start) beta_init = beta
@@ -406,8 +409,8 @@ contains
             end if
         end if
 
-! release spaces
-!--------------------
+        ! release spaces
+        !--------------------
         deallocate (xinput)
         deallocate (yinput)
         deallocate (fname)
@@ -700,8 +703,8 @@ contains
         if (idimen == desc_dim) then ! .and. trim(adjustl(calc))=='FCDI') then
             write (9, '(/a)') 'Final model/descriptor !'
             write (9, '(a)') '================================================================================'
-!else if(idimen<desc_dim) then ! .and. trim(adjustl(calc))=='FCDI') then
-!  write(9,'(/a)')  'Model/descriptor for generating residual:'
+        !else if(idimen<desc_dim) then ! .and. trim(adjustl(calc))=='FCDI') then
+        !  write(9,'(/a)')  'Model/descriptor for generating residual:'
         end if
         write (9, '(i3,a)') idimen, 'D descriptor (model): '
 
@@ -763,7 +766,7 @@ contains
 
     end subroutine
 
-! descriptor for classification
+    ! descriptor for classification
     subroutine model2(x, fname, nactive, activeset)
         integer nactive, activeset(:), i, j, k, l, loc(1), ii(dim_DI), itask, mm1, mm2, mm3, mm4, ns, &
             idimen, select_model(max(nmodels, 1), dim_DI), mID(max(nmodels, 1), dim_DI), overlap_n, overlap_n_tmp, &
@@ -804,7 +807,7 @@ contains
             select_overlap_n = sum(nsample)*sum(ngroup(:, 1000))  ! set to a large value
             totalm = 0
 
-! get the best nmodels models on each CPU core
+            ! get the best nmodels models on each CPU core
             nrecord = 0
             do k = 1, nactive
                 ii(1) = k
@@ -841,7 +844,8 @@ contains
                             if (isconvex(itask, i) == 0) cycle
                             mm1 = sum(ngroup(itask, :i - 1)) + 1
                             mm2 = sum(ngroup(itask, :i))
-                 area(i) = maxval(x(mm1:mm2, [activeset(ii(:idimen))], itask)) - minval(x(mm1:mm2, [activeset(ii(:idimen))], itask))
+                            area(i) = maxval(x(mm1:mm2, [activeset(ii(:idimen))], itask)) &
+                                    - minval(x(mm1:mm2, [activeset(ii(:idimen))], itask))
                         end do
                     else if (idimen == 2) then
                         do i = 1, ngroup(itask, 1000)
@@ -890,7 +894,8 @@ contains
                                     if (overlap_area_tmp >= 0.d0 .and. min(area(i), area(j)) == 0.d0) then !  0D feature
                                         overlap_area = max(0.d0, overlap_area) + 1.d0   ! totally overlapped
                                     else if (overlap_area_tmp >= 0.d0 .and. min(area(i), area(j)) > 0.d0) then ! not 0D feature
-                                        overlap_area = max(0.d0, overlap_area) + overlap_area_tmp/(min(area(i), area(j)))  ! total overlap
+                                        overlap_area = max(0.d0, overlap_area) + overlap_area_tmp/(min(area(i), area(j)))  
+                                        ! total overlap
                                     end if
                                 end if
 
@@ -1131,8 +1136,8 @@ contains
         if (idimen == desc_dim) then
             write (9, '(/a)') 'Final model/descriptor !'
             write (9, '(a)') '================================================================================'
-!else if(idimen<desc_dim) then
-!  write(9,'(/a)')  'Model/descriptor for generating residual:'
+            !else if(idimen<desc_dim) then
+            !  write(9,'(/a)')  'Model/descriptor for generating residual:'
         end if
 
         write (9, '(i3,a)') idimen, 'D descriptor (model): '

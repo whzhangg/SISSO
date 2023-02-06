@@ -34,39 +34,36 @@ module libsisso
 ! dispp: distance from a point to a plane
 !************************************************************************
 
-    use var_global
+use var_global
 
 contains
 
     function dispp(p, a, b, c)
-! Distance of a point from a plane
-! input: a,b,c are the three points determing the plane, p is the point outside the plane.
-! output: the distance
-
+        ! Distance of a point from a plane
+        ! input: a,b,c are the three points determing the plane, p is the point outside the plane.
+        ! output: the distance
         real*8 dispp, a(3), b(3), c(3), p(3), normal(3)
         normal = crosspro((a - b), (c - b))
         dispp = abs(sum(normal*(p - a)))/sqrt(sum(normal**2))
-
     end function
 
     function interlp(p1, p2, p3, p4, p5)
-! intersection between a line and a plane
-! input: p1,p2,p3 for determing the plane, p4 and p5 determing the line
-! output: the interception point
-
-        real*8 interlp(3), p1(3), p2(3), p3(3), p4(3), p5(3), normal(3), a, b, c, d, &
-            m, n, p, t
-! for plane
+        ! intersection between a line and a plane
+        ! input: p1,p2,p3 for determing the plane, p4 and p5 determing the line
+        ! output: the interception point
+        real*8 interlp(3), p1(3), p2(3), p3(3), p4(3), p5(3), normal(3)
+        real*8 a, b, c, d, m, n, p, t
+        ! for plane
         normal = crosspro((p1 - p2), (p3 - p2))
         a = normal(1)
         b = normal(2)
         c = normal(3)
         d = -(a*p1(1) + b*p1(2) + c*p1(3))  ! aX+bY+cZ+d=0 (X,Y,Z) is the normal
-! for line
+        ! for line
         m = p5(1) - p4(1)
         n = p5(2) - p4(2)
         p = p5(3) - p4(3)  !line equation: (x-x0)/m=(y-y0)/n=(z-z0)/p=t
-! intersection
+        ! intersection
         t = -(a*p4(1) + b*p4(2) + c*p4(3) + d)/(m*a + n*b + p*c) ! X=mt+x0; Y=nt+y0; Z=pt+z0
         interlp(1) = m*t + p4(1)
         interlp(2) = n*t + p4(2)
@@ -74,11 +71,12 @@ contains
     end function
 
     function intriangle(p, a, b, c)
-! check if point p is inside the triangle formed by points a,b,c
-! p,a,b,c are in the same plane
+        ! check if point p is inside the triangle formed by points a,b,c
+        ! p,a,b,c are in the same plane
         real*8 a(3), b(3), c(3), p(3), v1(3), v2(3), normal_0(3), normal_1(3), normal_2(3), normal_3(3)
         logical intriangle
         intriangle = .false.
+
         v1 = a - b
         v2 = c - b
         normal_0 = crosspro_abnormalized(v1, v2) ! triangle normal
@@ -91,13 +89,19 @@ contains
         v1 = p - a
         v2 = b - a
         normal_3 = crosspro_abnormalized(v1, v2)
-   if (sum(normal_0*normal_1) >= 0.d0 .and. sum(normal_0*normal_2) >= 0.d0 .and. sum(normal_0*normal_3) >= 0.d0) intriangle = .true.
+
+        if (sum(normal_0*normal_1) >= 0.d0 .and. &
+            sum(normal_0*normal_2) >= 0.d0 .and. &
+            sum(normal_0*normal_3) >= 0.d0) then
+            intriangle = .true.
+        end if
+
     end function
 
     subroutine string_split(instr, outstr, sp)
-! break a string into sub-strings
-! input: instr, string; sp, separator
-! output: outstr, sub-strings
+        ! break a string into sub-strings
+        ! input: instr, string; sp, separator
+        ! output: outstr, sub-strings
         character(len=*) instr, outstr(:), sp
         integer n
         logical isend
@@ -133,12 +137,13 @@ contains
     end subroutine
 
     function corr(x, y)
-! pearson's correlation
-! input: vector x and y
-! output: the correlation coefficient
-        real*8 x(:), y(:), meanx, meany, sigmax, sigmay, m, corr
-        m = size(x)
+        ! pearson's correlation
+        ! input: vector x and y
+        ! output: the correlation coefficient
+        real*8 x(:), y(:)
+        real*8 meanx, meany, sigmax, sigmay, m, corr
 
+        m = size(x)
         meanx = sum(x)/m
         meany = sum(y)/m
         sigmax = sqrt(sum((x - meanx)**2)/m)
@@ -148,10 +153,9 @@ contains
     end function
 
     function det(mat)
-! LU docomposition for sovling determinant of a matrix
-! input: matrix mat
-! output: the determinant.
-
+        ! LU docomposition for sovling determinant of a matrix
+        ! input: matrix mat
+        ! output: the determinant.
         integer i, j, k, n
         real*8 mat(:, :), um(ubound(mat, 1), ubound(mat, 1)), s, det, temp(ubound(mat, 1))
         s = 0
@@ -188,15 +192,17 @@ contains
         end do
 
         det = s
+
     end function
 
     function inverse(mat)
-! calculate the inverse of a given matrix
-! input: the matrix mat
+        ! calculate the inverse of a given matrix
+        ! input: the matrix mat
 
         real*8 mat(:, :), um(ubound(mat, 1), ubound(mat, 1)), lm(ubound(mat, 1), ubound(mat, 1))
         real*8 x(ubound(mat, 1), ubound(mat, 1)), y(ubound(mat, 1), ubound(mat, 1)), inverse(ubound(mat, 1), ubound(mat, 1))
         integer i, j, k, n
+
         um = mat
         n = ubound(mat, 1)
         lm = 0; x = 0; y = 0
@@ -204,23 +210,23 @@ contains
         if (abs(det(mat)) < 1d-30) write (*, '(a,E15.6E3,a)') 'Warning: value of the determinant is:', &
             det(mat), ' matrix might be singular'
 
-! construct up triangle matrix
+        ! construct up triangle matrix
         do i = 1, n
-        do j = i + 1, n
-            um(j, :) = um(j, :) - um(j, i)/um(i, i)*um(i, :)
-        end do
+            do j = i + 1, n
+                um(j, :) = um(j, :) - um(j, i)/um(i, i)*um(i, :)
+            end do
         end do
 
-! construct low triangle matrix
+        ! construct low triangle matrix
         lm(1, 1) = mat(1, 1)/um(1, 1)
         do i = 2, n
-        do j = 1, i
-            s = sum(lm(i, 1:(i - 1))*um(1:(i - 1), j))
-            lm(i, j) = (mat(i, j) - s)/um(j, j)
-        end do
+            do j = 1, i
+                s = sum(lm(i, 1:(i - 1))*um(1:(i - 1), j))
+                lm(i, j) = (mat(i, j) - s)/um(j, j)
+            end do
         end do
 
-! construct y matrix
+        ! construct y matrix
         y(1, 1) = 1/lm(1, 1)
         do i = 2, n
         do j = 1, i
@@ -230,7 +236,7 @@ contains
         end do
         end do
 
-! construct x matrix, which is also the inverse matrix
+        ! construct x matrix, which is also the inverse matrix
         do i = 1, n
             x(n, i) = y(n, i)/um(n, n)
         end do
@@ -246,8 +252,8 @@ contains
     end function
 
     subroutine qr_de(a, q, r)
-! QR decomposition of input matrix a
-! https://en.wikipedia.org/wiki/QR_decomposition
+        ! QR decomposition of input matrix a
+        ! https://en.wikipedia.org/wiki/QR_decomposition
         integer i, j, k, m, n
         real*8 a(:, :), q(ubound(a, 1), ubound(a, 2)), r(ubound(a, 2), ubound(a, 2))
         real*8 u(ubound(a, 1), ubound(a, 2)), e(ubound(a, 1), ubound(a, 2))
@@ -281,10 +287,10 @@ contains
     end subroutine
 
     subroutine orth_de(x, y, intercept, beta, rmse)
-! linear least square fit to y=a+x*b by orthogonal decomposition
-! input: matrix x,vector y;
-! output intercept,beta,rmse
-! https://en.wikipedia.org/wiki/Linear_least_squares_(mathematics)
+        ! linear least square fit to y=a+x*b by orthogonal decomposition
+        ! input: matrix x,vector y;
+        ! output intercept,beta,rmse
+        ! https://en.wikipedia.org/wiki/Linear_least_squares_(mathematics)
 
         real*8 x(:, :), y(:), beta(ubound(x, 2)), xprime(ubound(x, 1), ubound(x, 2)), yprime(ubound(y, 1)), intercept, rmse
         real*8 q(ubound(x, 1), ubound(x, 2)), r(ubound(x, 2), ubound(x, 2)), qty(ubound(x, 2)), xmean(ubound(x, 2)), ymean
@@ -317,9 +323,9 @@ contains
     end subroutine
 
     subroutine orth_de_nointercept(x, y, beta, rmse)
-! linear least square fit to y=x*b by orthogonal decomposition
-! input: matrix x,vector y;
-! output beta,rmse
+        ! linear least square fit to y=x*b by orthogonal decomposition
+        ! input: matrix x,vector y;
+        ! output beta,rmse
 
         real*8 x(:, :), y(:), beta(ubound(x, 2)), rmse
         real*8 q(ubound(x, 1), ubound(x, 2)), r(ubound(x, 2), ubound(x, 2)), qty(ubound(x, 2))
@@ -345,11 +351,12 @@ contains
     end subroutine
 
     subroutine worth_de(x, y, weight, intercept, beta, rmse, wrmse)
-! weighted linear least sqaure
+        ! weighted linear least sqaure
         implicit none
-       real*8 x(:, :), y(:), beta(ubound(x, 2)), xprime(ubound(x, 1), ubound(x, 2)), yprime(ubound(y, 1)), intercept, wrmse, rmse, &
-           q(ubound(x, 1), ubound(x, 2)), r(ubound(x, 2), ubound(x, 2)), qty(ubound(x, 2)), xmean(ubound(x, 2)), ymean, weight(:), &
-            wx(ubound(x, 1), ubound(x, 2)), wy(ubound(y, 1))
+        real*8  x(:, :), y(:), beta(ubound(x, 2)), xprime(ubound(x, 1), ubound(x, 2)), yprime(ubound(y, 1))
+        real*8  intercept, wrmse, rmse
+        real*8  q(ubound(x, 1), ubound(x, 2)), r(ubound(x, 2), ubound(x, 2)), qty(ubound(x, 2)), xmean(ubound(x, 2)), &
+                ymean, weight(:), wx(ubound(x, 1), ubound(x, 2)), wy(ubound(y, 1))
         integer i, j, k, m, n
 
         m = ubound(x, 1)
@@ -383,10 +390,10 @@ contains
     end subroutine
 
     subroutine lls(x, y, intercept, beta, rmse)
-! linear least square fit by the standard method
-! input: matrix x, vector y
-! output: beta,rmse, intercept
-! https://en.wikipedia.org/wiki/Linear_least_squares_(mathematics)
+        ! linear least square fit by the standard method
+        ! input: matrix x, vector y
+        ! output: beta,rmse, intercept
+        ! https://en.wikipedia.org/wiki/Linear_least_squares_(mathematics)
         implicit none
         real*8 x(:, :), y(ubound(x, 1)), beta0(ubound(x, 2) + 1), rmse, x0(ubound(x, 1), ubound(x, 2) + 1), &
             beta(ubound(x, 2)), intercept
@@ -405,9 +412,9 @@ contains
     end subroutine
 
     function crosspro(a, b)
-! calculate the cross product: a x b
-! input: vector a and b
-! output: a vector
+        ! calculate the cross product: a x b
+        ! input: vector a and b
+        ! output: a vector
         real*8 a(3), b(3), crosspro(3)
         crosspro(1) = a(2)*b(3) - a(3)*b(2); 
         crosspro(2) = a(3)*b(1) - a(1)*b(3); 
@@ -415,7 +422,7 @@ contains
     end function
 
     function crosspro_abnormalized(a, b)
-! a and b are normalized before calculating their cross product
+        ! a and b are normalized before calculating their cross product
         real*8 a(3), b(3), aa(3), bb(3), crosspro_abnormalized(3), norma, normb
         aa = a
         bb = b
@@ -434,15 +441,15 @@ contains
     end function
 
     subroutine lasso(prod_xty, prod_xtx, lambda, max_iter, tole, beta_init, run_iter, beta, nf)
-! min: f(beta)=1/2*||y-x*beta||**2 + lambda*||beta||_l1
-! prod_xty=XtY; prod_xtx=XtX; max_iter:allowed max cycle;
-! tole: convergence criteria for cd to stop
-! beta_init: initial coefficient
-! run_iter, actual run cycles; nf: number of selected features;
-! input prod_xty,prod_xtx,lambda,max_iter,tole,beta_init;
-! output run_iter,beta, nf
-! (LASSO) J. Friedman, T. Hastie, R. Tibshirani, J. Stat. Softw. 33, 1(2010).
-! (LASSO) J. Friedman, T. Hastie, H. Hofling, R. Tibshirani, Ann. Appl. Stat. 1, 302 (2007).
+        ! min: f(beta)=1/2*||y-x*beta||**2 + lambda*||beta||_l1
+        ! prod_xty=XtY; prod_xtx=XtX; max_iter:allowed max cycle;
+        ! tole: convergence criteria for cd to stop
+        ! beta_init: initial coefficient
+        ! run_iter, actual run cycles; nf: number of selected features;
+        ! input prod_xty,prod_xtx,lambda,max_iter,tole,beta_init;
+        ! output run_iter,beta, nf
+        ! (LASSO) J. Friedman, T. Hastie, R. Tibshirani, J. Stat. Softw. 33, 1(2010).
+        ! (LASSO) J. Friedman, T. Hastie, H. Hofling, R. Tibshirani, Ann. Appl. Stat. 1, 302 (2007).
         implicit none
         real*8 prod_xty(:), prod_xtx(:, :), lambda, beta(:), beta_init(:), &
             beta_old(ubound(beta, 1)), z, tole, rand(ubound(beta, 1)), beta_tmp, dbeta, xxbeta(ubound(beta, 1))
@@ -455,9 +462,9 @@ contains
         beta = beta_init
         xxbeta = matmul(prod_xtx, beta)
 
-!-------------------------
-! entering the main loop
-!-------------------------
+        !-------------------------
+        ! entering the main loop
+        !-------------------------
 
         do i = 1, max_iter
 
@@ -516,41 +523,42 @@ contains
     end subroutine
 
     subroutine mtlasso_mpi(prod_xty, prod_xtx, lambda, max_iter, tole, beta_init, run_iter, beta, nf, ncol)
-! prod_xty=XtY; prod_xtx=XtX; max_iter:allowed max cycle;
-! tole: convergence criteria for cd to stop
-! beta_init: initial coefficient
-! run_iter, actual run cycles; nf: number of selected features;
-! ncol: mpi jobs assignment
-! output run_iter,beta, nf
-! (LASSO) J. Friedman, T. Hastie, R. Tibshirani, J. Stat. Softw. 33, 1(2010).
-! (LASSO) J. Friedman, T. Hastie, H. Hofling, R. Tibshirani, Ann. Appl. Stat. 1, 302 (2007).
-! (MTLASSO) G. Obozinski, B. Taskar, M. Jordan, 2006 "Multi-task feature selection"
-! multi-task lasso return back to lasso when the number of task is one
-! algorithm for sovling multi-task lasso can be found from that of group lasso
-! (GLASSO) M. Yuan and Y. Lin, J. R. Statist. Soc. B 68,49(2006)
-! (GLASSO) J. Friedman, T. Hastie, and R. Tibshirani, 2010 "A note on the group lasso and a sparse group lasso"
-! (Elastic net) H. Zou, and T. Hastie, J. R. Statist. Soc. B 67, 301 (2005).
+        ! prod_xty=XtY; prod_xtx=XtX; max_iter:allowed max cycle;
+        ! tole: convergence criteria for cd to stop
+        ! beta_init: initial coefficient
+        ! run_iter, actual run cycles; nf: number of selected features;
+        ! ncol: mpi jobs assignment
+        ! output run_iter,beta, nf
+        ! (LASSO) J. Friedman, T. Hastie, R. Tibshirani, J. Stat. Softw. 33, 1(2010).
+        ! (LASSO) J. Friedman, T. Hastie, H. Hofling, R. Tibshirani, Ann. Appl. Stat. 1, 302 (2007).
+        ! (MTLASSO) G. Obozinski, B. Taskar, M. Jordan, 2006 "Multi-task feature selection"
+        ! multi-task lasso return back to lasso when the number of task is one
+        ! algorithm for sovling multi-task lasso can be found from that of group lasso
+        ! (GLASSO) M. Yuan and Y. Lin, J. R. Statist. Soc. B 68,49(2006)
+        ! (GLASSO) J. Friedman, T. Hastie, and R. Tibshirani, 2010 "A note on the group lasso and a sparse group lasso"
+        ! (Elastic net) H. Zou, and T. Hastie, J. R. Statist. Soc. B 67, 301 (2005).
 
-  real*8 prod_xty(:, :), prod_xtx(:, :, :), lambda, beta(:, :), beta_init(:, :), beta_old(ubound(beta, 1), ubound(beta, 2)), tole, &
-            beta_tmp(ubound(beta, 2)), beta_tmp2(ubound(beta, 2)), dbeta, xxbeta(ubound(beta, 1), ubound(beta, 2)), &
-            Sj(ubound(beta, 2)), norm
-  integer ntotf, i, j, k, max_iter, run_iter, nf, ac1(ubound(beta, 1)), ac2(ubound(beta, 1)), ntask, mpii, mpij, mpik, mpin, ncol(:)
-        logical active_change
-!----
+        real*8      prod_xty(:, :), prod_xtx(:, :, :), lambda, beta(:, :), beta_init(:, :), beta_old(ubound(beta, 1), &
+                    ubound(beta, 2)), tole, beta_tmp(ubound(beta, 2)), beta_tmp2(ubound(beta, 2)), dbeta, &
+                    xxbeta(ubound(beta, 1), ubound(beta, 2)), Sj(ubound(beta, 2)), norm
+        integer     ntotf, i, j, k, max_iter, run_iter, nf, ac1(ubound(beta, 1)), ac2(ubound(beta, 1)), ntask
+        integer     mpii, mpij, mpik, mpin, ncol(:)
+        logical     active_change
+        !----
 
         ntask = ubound(prod_xty, 2)
         ntotf = ubound(prod_xty, 1)
         beta_old = beta_init
         beta = beta_init
 
-! calculate xtx*beta
+        ! calculate xtx*beta
         do mpij = 1, ncol(mpirank + 1)
         do mpik = 1, ntask
             xxbeta(mpij, mpik) = sum(prod_xtx(:, mpij, mpik)*beta(:, mpik))
         end do
         end do
 
-! rank0 collect data and broadcast
+        ! rank0 collect data and broadcast
         mpin = ncol(mpirank + 1)
         if (mpirank /= 0) then
             call mpi_send(xxbeta(1:mpin, :), mpin*ntask, mpi_double_precision, 0, 1, mpi_comm_world, mpierr)
@@ -565,9 +573,9 @@ contains
         call mpi_barrier(mpi_comm_world, mpierr)
         call mpi_bcast(xxbeta, ntotf*ntask, mpi_double_precision, 0, mpi_comm_world, mpierr)
 
-!------------------------
-! entering the main loop
-!------------------------
+        !------------------------
+        ! entering the main loop
+        !------------------------
         do i = 1, max_iter
 
             if (i == 1) then
@@ -669,21 +677,22 @@ contains
     end subroutine
 
     subroutine sc_coord_descent(x, y, max_iter, tole, dd, intercept, beta, rmse)
-! sign-constrained coordinate descent method to solve y=a+x*b
-! input: matrix x,vector y,max iteration:  max_iter,tolerance: tole, dimension: dd
-! output: intercept,beta,rmse
+        ! sign-constrained coordinate descent method to solve y=a+x*b
+        ! input: matrix x,vector y,max iteration:  max_iter,tolerance: tole, dimension: dd
+        ! output: intercept,beta,rmse
 
         implicit none
-        integer m, n, i, j, k, max_iter, dd
-    real*8 x(:, :), y(ubound(x, 1)), beta(ubound(x, 2), 2**dd), beta_old(ubound(x, 2), 2**dd), xprime(ubound(x, 1), ubound(x, 2)), &
-            xdprime(ubound(x, 1), ubound(x, 2)), yprime(ubound(y, 1)), intercept(2**dd), rmse(2**dd), tole, norm_beta, &
-            prod_xty(ubound(x, 2)), prod_xtx(ubound(x, 2), ubound(x, 2)), xpnorm(ubound(x, 2)), ymean, xmean(ubound(x, 2))
-        integer csign(ubound(x, 2), 2**dd)
+        integer     m, n, i, j, k, max_iter, dd
+        real*8      x(:, :), y(ubound(x, 1)), beta(ubound(x, 2), 2**dd), beta_old(ubound(x, 2), 2**dd), &
+                    xprime(ubound(x, 1), ubound(x, 2)), xdprime(ubound(x, 1), ubound(x, 2)), yprime(ubound(y, 1)), &
+                    intercept(2**dd), rmse(2**dd), tole, norm_beta, prod_xty(ubound(x, 2)), prod_xtx(ubound(x, 2), &
+                    ubound(x, 2)), xpnorm(ubound(x, 2)), ymean, xmean(ubound(x, 2))
+        integer     csign(ubound(x, 2), 2**dd)
 
         m = ubound(x, 1)
         n = ubound(x, 2)
 
-! enumerate all coefficients signs
+        ! enumerate all coefficients signs
         csign = 1
         do i = n, 1, -1
             if (i == n) then
@@ -694,12 +703,12 @@ contains
             end if
         end do
 
-! yprime= y-ymean
-! xprime=x-xmean
-! xdprime=xprime/xpnorm
-! intercept=ymean-sum(xmean*beta)
-! argmin||y-x*beta-intercept|| -> argmin||yprime-xprime*beta||
-! beta=beta/xpnorm
+        ! yprime= y-ymean
+        ! xprime=x-xmean
+        ! xdprime=xprime/xpnorm
+        ! intercept=ymean-sum(xmean*beta)
+        ! argmin||y-x*beta-intercept|| -> argmin||yprime-xprime*beta||
+        ! beta=beta/xpnorm
 
         do i = 1, n
             xmean(i) = sum(x(:, i))/m
@@ -737,20 +746,21 @@ contains
     end subroutine
 
     subroutine sc_coord_descent_nointercept(x, y, max_iter, tole, dd, beta, rmse)
-! sign-constrained coordinate descent method to solve y=x*b
-! input: matrix x,vector y,max iteration:  max_iter,tolerance: tole, dimension: dd
-! output: beta,rmse
+        ! sign-constrained coordinate descent method to solve y=x*b
+        ! input: matrix x,vector y,max iteration:  max_iter,tolerance: tole, dimension: dd
+        ! output: beta,rmse
 
         implicit none
-        integer m, n, i, j, k, max_iter, dd
-    real*8 x(:, :), y(ubound(x, 1)), beta(ubound(x, 2), 2**dd), beta_old(ubound(x, 2), 2**dd), xprime(ubound(x, 1), ubound(x, 2)), &
-            rmse(2**dd), tole, norm_beta, prod_xty(ubound(x, 2)), prod_xtx(ubound(x, 2), ubound(x, 2)), xnorm(ubound(x, 2))
-        integer csign(ubound(x, 2), 2**dd)
+        integer     m, n, i, j, k, max_iter, dd
+        real*8      x(:, :), y(ubound(x, 1)), beta(ubound(x, 2), 2**dd), beta_old(ubound(x, 2), 2**dd), &
+                    xprime(ubound(x, 1), ubound(x, 2)), rmse(2**dd), tole, norm_beta, prod_xty(ubound(x, 2)), &
+                    prod_xtx(ubound(x, 2), ubound(x, 2)), xnorm(ubound(x, 2))
+        integer     csign(ubound(x, 2), 2**dd)
 
         m = ubound(x, 1)
         n = ubound(x, 2)
 
-! enumerate all coefficients signs
+        ! enumerate all coefficients signs
         csign = 1
         do i = n, 1, -1
             if (i == n) then
@@ -792,22 +802,23 @@ contains
     end subroutine
 
     subroutine coord_descent(x, y, max_iter, tole, intercept, beta, rmse)
-! coordinate descent method to solve y=a+x*b
-! input: matrix x,vector y, integer max_iter, real tole
-! output: intercept,beta,rmse
+        ! coordinate descent method to solve y=a+x*b
+        ! input: matrix x,vector y, integer max_iter, real tole
+        ! output: intercept,beta,rmse
 
         implicit none
-        real*8 x(:, :), y(ubound(x, 1)), beta(ubound(x, 2)), beta_old(ubound(x, 2)), xprime(ubound(x, 1), ubound(x, 2)), &
-            xdprime(ubound(x, 1), ubound(x, 2)), yprime(ubound(y, 1)), intercept, rmse, tole, norm_beta, prod_xty(ubound(x, 2)), &
-            prod_xtx(ubound(x, 2), ubound(x, 2)), xpnorm(ubound(x, 2)), ymean, xmean(ubound(x, 2))
-        integer m, n, i, j, k, max_iter
+        real*8      x(:, :), y(ubound(x, 1)), beta(ubound(x, 2)), beta_old(ubound(x, 2)), xprime(ubound(x, 1), &
+                    ubound(x, 2)), xdprime(ubound(x, 1), ubound(x, 2)), yprime(ubound(y, 1)), &
+                    intercept, rmse, tole, norm_beta, prod_xty(ubound(x, 2)), &
+                    prod_xtx(ubound(x, 2), ubound(x, 2)), xpnorm(ubound(x, 2)), ymean, xmean(ubound(x, 2))
+        integer     m, n, i, j, k, max_iter
 
-! yprime= y-ymean
-! xprime=x-xmean
-! xdprime=xprime/xpnorm
-! intercept=ymean-sum(xmean*beta)
-! argmin||y-x*beta-intercept|| -> argmin||yprime-xprime*beta||
-! beta=beta/xpnorm
+        ! yprime= y-ymean
+        ! xprime=x-xmean
+        ! xdprime=xprime/xpnorm
+        ! intercept=ymean-sum(xmean*beta)
+        ! argmin||y-x*beta-intercept|| -> argmin||yprime-xprime*beta||
+        ! beta=beta/xpnorm
 
         m = ubound(x, 1)
         n = ubound(x, 2)
@@ -845,9 +856,9 @@ contains
     end subroutine
 
     subroutine kfoldCV(x, y, random, fold, noise, CVrmse, CVmax)
-! k-fold cross validation
-! input: x, y, random, fold, noise
-! output: CVrmse, CVmax,
+        ! k-fold cross validation
+        ! input: x, y, random, fold, noise
+        ! output: CVrmse, CVmax,
 
         integer ns, fold, random(:), mm1, mm2, mm3, mm4, i, j, k, kk, l
         real*8 x(:, :), y(:), beta(ubound(x, 2)), intercept, rmse, CVse(fold), CVrmse, CVmax, pred(ubound(y, 1)), noise(:)
@@ -880,9 +891,9 @@ contains
     end subroutine
 
     subroutine convex2d_hull(set, numb, hull)
-! calculate the convex hull for a given data set
-! input: set, a matrix N x 2
-! output: numb (number of vertices); hull, the vertices stored in clockwise direction
+        ! calculate the convex hull for a given data set
+        ! input: set, a matrix N x 2
+        ! output: numb (number of vertices); hull, the vertices stored in clockwise direction
         real*8 set(:, :), hull(:, :), tmp, vjj(2), vij(2), vkj(2), normij, normkj
         integer numb, i, j, k, ntot, loc(1), nrecord
         logical used(ubound(set, 1)), isvertex
@@ -891,8 +902,8 @@ contains
         used = .false.
         numb = 0
 
-! find the initial point with min(x) and min(y)
-! j can't be set 'used' as it is waiting to be found to close the hull
+        ! find the initial point with min(x) and min(y)
+        ! j can't be set 'used' as it is waiting to be found to close the hull
         loc = minloc(set(:, 1))
         j = loc(1)
         do i = 1, ntot
@@ -903,7 +914,7 @@ contains
         numb = 1
         hull(1, :) = set(j, :)
 
-! find points at the same position with j
+        ! find points at the same position with j
         do i = 1, ntot
             if (i == j) cycle
             if (abs(set(j, 1) - set(i, 1)) <= 1d-10 .and. abs(set(j, 2) - set(i, 2)) <= 1d-10) then
@@ -914,8 +925,8 @@ contains
         end do
         if (numb == ntot) return
 
-! start searching vertices
-! from known vector vjj, find the next vertex k by searching all i
+        ! start searching vertices
+        ! from known vector vjj, find the next vertex k by searching all i
 
         vjj = (/0.d0, -1.d0/)  ! initial vector pointing downward
         nrecord = 0
@@ -971,14 +982,15 @@ contains
     end subroutine
 
     subroutine convex3d_hull(set, ntri, triangles)
-! find the convex hull by finding all the triangle facets
-! input: set, a matrix N x 3
-! output:  triangles, the ids of vertices forming traingles; ntri, number of triangles
-! NOTE: triangles is an allocatable array
-        real*8 set(:, :), tmp, vij(2), vkj(2), normal_a(3), normal_b(3), vtmp(3, 3), vedge(3), aa, bb, cc
-   integer ntri, i, j, k, l, m, ntot, loc(2), nedge, iedge, leftright, comp(3), size_tri, size_edge, ntri_coplane, ntri_saved, nvert
+        ! find the convex hull by finding all the triangle facets
+        ! input: set, a matrix N x 3
+        ! output:  triangles, the ids of vertices forming traingles; ntri, number of triangles
+        ! NOTE: triangles is an allocatable array
+        real*8      set(:, :), tmp, vij(2), vkj(2), normal_a(3), normal_b(3), vtmp(3, 3), vedge(3), aa, bb, cc
+        integer     ntri, i, j, k, l, m, ntot, loc(2), nedge, iedge, leftright, comp(3), size_tri, size_edge, &
+                    ntri_coplane, ntri_saved, nvert
+        logical     overlap(ubound(set, 1)), used, planar, goodedge
         integer, allocatable:: triangles(:, :), edges(:, :), change(:, :), recorder(:), coplane(:, :), ver_index(:)
-        logical overlap(ubound(set, 1)), used, planar, goodedge
 
         ntot = ubound(set, 1)
         overlap = .false.  ! points at the same position
@@ -990,10 +1002,10 @@ contains
         allocate (triangles(size_tri, 3))  ! size to be adjusted
         allocate (edges(size_edge, 2))
 
-! find the initial edge (the most left one projected on the x-y plane)
+        ! find the initial edge (the most left one projected on the x-y plane)
 
-!-------------------------------------
-! first point: min(x),min(y),min(z)
+        !-------------------------------------
+        ! first point: min(x),min(y),min(z)
         loc(1:1) = minloc(set(:, 1))
         k = loc(1)
         do i = 1, ntot
@@ -1006,7 +1018,7 @@ contains
             if(abs(set(loc(1),1)-set(i,1))<=1d-10 .and. abs(set(loc(1),2)-set(i,2))<=1d-10 .and. set(loc(1),3)>set(i,3)) loc(1)=i
         end do
 
-! second point for the initial edge
+        ! second point for the initial edge
         vkj = (/0.d0, -1.d0/)
         vtmp(3, :) = (/0.d0, 0.d0, -1.d0/)
         loc(2) = 0
@@ -1033,7 +1045,7 @@ contains
             end if
         end do
         if (loc(2) == 0) return  ! all points are at the same one point
-!-------------------------------------------------------
+        !-------------------------------------------------------
 
         nedge = 1
         ntri = 0
@@ -1043,14 +1055,14 @@ contains
             edges(1, :) = (/loc(2), loc(1)/)
         end if
 
-! find all points at the same position with the initial edge points
+        ! find all points at the same position with the initial edge points
         do i = 1, ntot
             if (i == edges(1, 1) .or. i == edges(1, 2)) cycle
          if (sqrt(sum((set(edges(1, 1), :) - set(i, :))**2)) < 1d-10 .or. sqrt(sum((set(edges(1, 2), :) - set(i, :))**2)) < 1d-10) &
                 overlap(i) = .true.
         end do
 
-! With the initial edge and plane, find all the triangles
+        ! With the initial edge and plane, find all the triangles
         leftright = 1
         iedge = 1
         do while (iedge <= nedge)
@@ -1201,7 +1213,7 @@ contains
 
         end do
 
-! rearrangement of the triangles in the same plane
+        ! rearrangement of the triangles in the same plane
         allocate (change(5*ntri, 3))
         allocate (coplane(5*ntri, 3))
         allocate (recorder(ntri))
@@ -1331,16 +1343,17 @@ contains
     end subroutine
 
     subroutine convex2d_overlap(set1, set2, bwidth, numb, area)
-! counting the number of data and area in the overlapped region between two convex hulls
-! input: data set 1, data set 2,bwidth(boundary tolerance)
-! output: number of data in the overlapped region, area of the overlapped region
-! segment intersection: (http://dec3.jlu.edu.cn/webcourse/t000096/graphics/chapter5/01_1.html)
-! if two convex domain has more than two intersection points, the two domains are considered totally overlap !
+        ! counting the number of data and area in the overlapped region between two convex hulls
+        ! input: data set 1, data set 2,bwidth(boundary tolerance)
+        ! output: number of data in the overlapped region, area of the overlapped region
+        ! segment intersection: (http://dec3.jlu.edu.cn/webcourse/t000096/graphics/chapter5/01_1.html)
+        ! if two convex domain has more than two intersection points, the two domains are considered totally overlap !
 
-        integer i, j, i2, j2, k, numb, nh1, nh2, ns1, ns2, n_intersect
-        real*8 set1(:,:),set2(:,:),area,hull1(ubound(set1,1),2),hull2(ubound(set2,1),2),bwidth,norm1,norm2,vunit1(2),vunit2(2),&
-            set3(10*(ubound(set1, 1) + ubound(set2, 1)), 2), tmp, segp(4, 2), delta, lambda, mu, xa, xb, ya, yb, xc, xd, yc, yd
-        logical inside, polygon1, polygon2
+        integer     i, j, i2, j2, k, numb, nh1, nh2, ns1, ns2, n_intersect
+        real*8      set1(:,:), set2(:,:), area, hull1(ubound(set1,1),2), hull2(ubound(set2,1),2), bwidth, &
+                    norm1, norm2, vunit1(2), vunit2(2), set3(10*(ubound(set1, 1) + ubound(set2, 1)), 2), tmp, &
+                    segp(4, 2), delta, lambda, mu, xa, xb, ya, yb, xc, xd, yc, yd
+        logical     inside, polygon1, polygon2
 
         call convex2d_hull(set1, nh1, hull1)  ! convex hull of data set 1
         call convex2d_hull(set2, nh2, hull2)  ! convex hull of data set 2
@@ -1354,7 +1367,7 @@ contains
         if (convex2d_area(hull1(:nh1, :)) < 1d-10) polygon1 = .false.
         if (convex2d_area(hull2(:nh2, :)) < 1d-10) polygon2 = .false.
 
-! both the sets are not polygons
+        ! both the sets are not polygons
         if ((ns1 > 2 .and. (.not. polygon1)) .or. (ns2 > 2 .and. (.not. polygon2))) then   ! two lines
             numb = ns1 + ns2      ! set to max since this is not wanted.
             area = 0.d0
@@ -1465,9 +1478,9 @@ contains
     end subroutine
 
     function convex2d_area(set)
-! calculate the area of a 2d convex hull
-! input: set, a matrix
-! output: area
+        ! calculate the area of a 2d convex hull
+        ! input: set, a matrix
+        ! output: area
         real*8 va(2), vb(2), area, convex2d_area, set(:, :), hull(ubound(set, 1), ubound(set, 2))
         integer i, j, k, nh
 
@@ -1486,9 +1499,9 @@ contains
     end function
 
     function convex2d_in(set1, set2, bwidth)
-! check how many points of set2 are inside the hull of set1
-! input: the data set forming the hull; the point; and boundary tolerence
-! output: .false. or .true.
+        ! check how many points of set2 are inside the hull of set1
+        ! input: the data set forming the hull; the point; and boundary tolerence
+        ! output: .false. or .true.
 
         integer i, j, k, nh, np, convex2d_in
         real*8 set1(:, :), set2(:, :), hull(ubound(set1, 1), ubound(set1, 2)), tmp, bwidth, norm1, norm2, vunit1(2), vunit2(2)
@@ -1530,7 +1543,7 @@ contains
     end function
 
     function convex2d_dist(set1, set2)
-! calculate the distance between two data sets (convex hulls)
+        ! calculate the distance between two data sets (convex hulls)
 
         real*8 set1(:, :), set2(:, :), convex2d_dist, hull1(ubound(set1, 1), 2), hull2(ubound(set2, 1), 2), &
             p1(2), p2(2), p3(2), va(2), vb(2), vv(2), dot, len_sq, param, dist
@@ -1616,8 +1629,8 @@ contains
     end function
 
     subroutine convex1d_overlap(set1, set2, bwidth, numb, length)
-! input: set1, set2, bwidth
-! output: number of data, and the length, in the overlapped region
+        ! input: set1, set2, bwidth
+        ! output: number of data, and the length, in the overlapped region
         real*8 set1(:), set2(:), length, mini, maxi, bwidth
         integer numb, i, ns1, ns2
         ns1 = ubound(set1, 1)
@@ -1639,12 +1652,12 @@ contains
         end do
 
         length = (min(maxval(set1), maxval(set2)) - max(minval(set1), minval(set2)))
-! if overlapped when length>0, and separated distance when length<0.
+        ! if overlapped when length>0, and separated distance when length<0.
 
     end subroutine
 
     function convex1d_in(set1, set2, bwidth)
-! check how many data points of set2 are inside the segment by set1
+        ! check how many data points of set2 are inside the segment by set1
         real*8 set1(:), set2(:), mini, maxi, bwidth
         integer i, convex1d_in
         ns1 = ubound(set1, 1)
@@ -1661,14 +1674,14 @@ contains
     end function
 
     function convex3d_in(set1, set2, bwidth, ntri, triangles)
-! check how many points of set2 are inside a 3d convex hull of set1
-! input: the full data set1,set2, the boundary tolerence, and the hull-triangles
+        ! check how many points of set2 are inside a 3d convex hull of set1
+        ! input: the full data set1,set2, the boundary tolerence, and the hull-triangles
 
-        integer iii, i, j, k, ntri, ninter, triangles(:, :), convex3d_in
-        real*8 pref(3), set1(:, :), set2(:, :), bwidth, pproj(3), pinter(3), v1(3), v2(3), v3(3), &
-            normal(3), ddd, ttt, area, dist(3), vtmp(3, 3)
+        integer     iii, i, j, k, ntri, ninter, triangles(:, :), convex3d_in
+        real*8      pref(3), set1(:, :), set2(:, :), bwidth, pproj(3), pinter(3), v1(3), v2(3), v3(3), &
+                    normal(3), ddd, ttt, area, dist(3), vtmp(3, 3)
+        logical     inside
         real*8, allocatable:: inter_all(:, :)
-        logical inside
 
         convex3d_in = 0
         allocate (inter_all(ntri, 3))
@@ -1758,9 +1771,9 @@ contains
     end function
 
     subroutine convex3d_overlap(set1, set2, bwidth, numb)
-! counting the number of overlap data
-! input: data set 1, data set 2,bwidth(boundary tolerance)
-! output: number of data in the overlapped region
+        ! counting the number of overlap data
+        ! input: data set 1, data set 2,bwidth(boundary tolerance)
+        ! output: number of data in the overlapped region
 
         integer no1, no2, i, j, k, nset1, nset2, ntri1, ntri2
         integer, allocatable:: triangles(:, :)
@@ -1776,7 +1789,7 @@ contains
             return
         end if
 
-! counts data of set2 in set1
+        ! counts data of set2 in set1
         no1 = 0
         no1 = no1 + convex3d_in(set1, set2, bwidth, ntri1, triangles)
         deallocate (triangles)  ! allocated in the convex3d_hull
@@ -1787,7 +1800,7 @@ contains
             return
         end if
 
-! counts data of set1 in set2
+        ! counts data of set1 in set2
         no2 = 0
         no2 = no2 + convex3d_in(set2, set1, bwidth, ntri2, triangles)
         deallocate (triangles)
