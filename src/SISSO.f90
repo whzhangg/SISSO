@@ -31,7 +31,7 @@ program SISSO
 
     call random_seed()
     call initialization  ! parameters initialization
-    call read_para_a  ! from SISSO.in
+    call read_para_a     ! from SISSO.in
     if (nreaction > 0 .and. (ptype == 2 .or. ntask > 1)) stop "Error: Reaction ML works only with ptype=1 and ntask=1 !"
     fileunit = 100
 
@@ -53,7 +53,8 @@ program SISSO
     allocate (nsample(ntask))  ! for regression, # samples for each task
     allocate (ngroup(ntask, 1000))  ! for classification, # samples in each group of a task
     allocate (isconvex(ntask, 1000))
-    allocate (feature_units(ndimtype, nsf + nvf))
+    allocate (feature_units(ndimtype, nsf + nvf)) 
+    !wh ndimtype: num of different units, nsf: num of scalar features, nvf: num of vector features
     call read_para_b
     if (nreaction > 0) then
         npoints = nreaction
@@ -66,6 +67,8 @@ program SISSO
     allocate (pfname(nsf + nvf)) ! primary-feature name
     allocate (pvfeat(sum(nsample), vfsize, nvf))  ! primary vector features
     allocate (res(npoints))
+    !wh psfeat : features nsample, nsf
+    !   prop_y : targets vector
 
     datalen = 1000 + max(nsf, nvf)*20
     call read_data  ! from train.dat (and train_vf.dat, reaction.dat if available)
@@ -114,6 +117,8 @@ program SISSO
 
             if (mpirank == 0) call writeCONTINUE('FC')
             if (mpirank == 0) call prepare4FC
+            !wh prepare4FC: obtain the residual from `desc_dat/` files start from the second iteration,
+            !wh otherwise, set residual to targt, then boardcast residual
             call mpi_bcast(res, npoints, mpi_double_precision, 0, mpi_comm_world, mpierr)
             call mpi_barrier(mpi_comm_world, mpierr)
             call feature_construction
@@ -327,6 +332,7 @@ contains
         character line_short*500
 
         !read parameters from SISSO.in
+        !wh: refer to the SISSO_Guide for the meaning of the parameters
         open (fileunit, file='SISSO.in', status='old')
         do while (.true.)
             read (fileunit, '(a)', iostat=ioerr) line_short
@@ -492,6 +498,10 @@ contains
             i = index(funit, '(')
             j = index(funit, ':')
             kk = index(funit, ')')
+            !wh example: (1:3)(4:6), ndimtype is the number of input units, 
+            !wh k,l is the start and end index of features. so that the above will give:
+            !wh     1 1 1 0 0 0
+            !wh     0 0 0 1 1 1
             if (i > 0 .and. j > 0) then
                 read (funit(i + 1:j - 1), *, err=1001) k
                 read (funit(j + 1:kk - 1), *, err=1001) l
@@ -527,7 +537,8 @@ contains
         call string_split(line_verylong, string_tmp, ' ')
 
         if (ptype == 1 .and. nreaction == 0) then
-            pfname = string_tmp(3:2 + nsf)
+            pfname = string_tmp(3:2 + nsf) 
+            !wh regression task
         else
             pfname = string_tmp(2:1 + nsf)
         end if
@@ -539,6 +550,7 @@ contains
             samplename(i) = line_verylong(:j)
             line_verylong = line_verylong(j:)
             if (ptype == 1 .and. nreaction == 0) then
+                !wh second column is property and followings are features
                 read (line_verylong, *, err=1002) prop_y(i), psfeat(i, :)
             else  ! ptype==2 or nreaction>0
                 read (line_verylong, *, err=1002) psfeat(i, :)   ! no y value in the train.dat file for classification

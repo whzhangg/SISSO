@@ -1,4 +1,6 @@
 .DS_Store
 src/build.sh
+src/*.o
+src/*.mod
 test/**
-readme.develop.md
+/SISSO

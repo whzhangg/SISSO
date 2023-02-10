@@ -21,7 +21,7 @@ module var_global
     real*8          decorr_theta, decorr_delta, decorr_alpha
     real*8          fmax_min, fmax_max, bwidth, L1_tole, L1_minrmse, L1_elastic
     integer         nsf, nvf, ntask, vfsize, ndimtype, fcomplexity, rung, fs_size_DI, fs_size_L0
-    integer         ptype, L1_max_iter, L1_nlambda, L1_dens, desc_dim, nmodels, CV_fold, 
+    integer         ptype, L1_max_iter, L1_nlambda, L1_dens, desc_dim, nmodels, CV_fold
     integer         CV_repeat, iFCDI, fileunit, task_weighting, nreaction, npoints, restart
     integer         mpierr, mpirank, mpisize, status(MPI_STATUS_SIZE)
     integer*8       nf_sis(10000), nsis(10000)

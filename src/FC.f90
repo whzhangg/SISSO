@@ -710,14 +710,16 @@ contains
     end subroutine
 
     subroutine combine(fin1, name_in1, lastop_in1, compl_in1, dim_in1, fin2, name_in2, lastop_in2, compl_in2, dim_in2, op, nf)
+        ! if op='NO', then simply check if each feature is good feature
+        !wh op is all the possible operation
         implicit none
-        real progress
-        real*8 fin1(:, :), fin2(:, :), tmp(ubound(fin1, 1)), dim_in1(:, :), dim_in2(:, :), &
-            dimtmp(ubound(dim_in1, 1)), tmp_vf(ubound(fin1, 1), vfsize)
-        integer*8 nfin1, nfin2, i, j, k, kk, kkk, l, nf, compl_in1(:), compl_in2(:), compl_tmp, counter, total_comb
-        character(len=*) name_in1(:), name_in2(:), op, lastop_in1(:), lastop_in2(:)
+        real                progress
+        real*8              fin1(:, :), fin2(:, :), tmp(ubound(fin1, 1)), dim_in1(:, :), dim_in2(:, :), &
+                            dimtmp(ubound(dim_in1, 1)), tmp_vf(ubound(fin1, 1), vfsize)
+        integer*8           nfin1, nfin2, i, j, k, kk, kkk, l, nf, compl_in1(:), compl_in2(:), compl_tmp, counter, total_comb
+        character(len=*)    name_in1(:), name_in2(:), op, lastop_in1(:), lastop_in2(:)
         character(len=lname) name_tmp, lastop_tmp*10
-        logical first, skip
+        logical             first, skip
 
         nfin1 = ubound(fin1, 2)  ! from the subspace
         nfin2 = ubound(fin2, 2)  ! from the total
@@ -737,6 +739,12 @@ contains
                 if (isscalar(name_in1(i))) then
                     tmp = fin1(:, i)
                     call isgoodf(tmp, name_tmp, lastop_tmp, compl_tmp, dimtmp, nf)
+                    !wh isgoodf will increment nf
+                    !fout(:, nf) = feat            put the features 
+                    !name_out(nf) = name_feat
+                    !lastop_out(nf) = lastop
+                    !complexity_out(nf) = compl
+                    !dim_out(:, nf) = dimens
                 else
                     tmp_vf = vfeat(:, :, nint(fin1(1, i)))
                     call isgoodvf(tmp_vf, name_tmp, lastop_tmp, compl_tmp, dimtmp, nf)
@@ -752,34 +760,36 @@ contains
 
             ! exp
             IF (index(op, '(exp)') /= 0) then
-            if (index(lastop_in1(i), '(exp') == 0 .and. index(lastop_in1(i), '(log)') == 0) then ! avoid exp(exp( and exp(log(
-                lastop_tmp = '(exp)'
-                name_tmp = 'exp('//trim(adjustl(name_in1(i)))//')'
-                dimtmp = dimcomb(dim_in1(:, i), dim_in1(:, i), '(exp)')
-                if (isscalar(name_in1(i))) then  ! vector feature or not
-                    tmp = exp(fin1(:, i))
-                    call isgoodf(tmp, name_tmp, lastop_tmp, compl_tmp, dimtmp, nf)
-                else
-                    tmp_vf = exp(vfeat(:, :, nint(fin1(1, i))))
-                    call isgoodvf(tmp_vf, name_tmp, lastop_tmp, compl_tmp, dimtmp, nf)
+                if (index(lastop_in1(i), '(exp') == 0 .and. index(lastop_in1(i), '(log)') == 0) then 
+                    ! avoid exp(exp( and exp(log(
+                    lastop_tmp = '(exp)'
+                    name_tmp = 'exp('//trim(adjustl(name_in1(i)))//')'
+                    dimtmp = dimcomb(dim_in1(:, i), dim_in1(:, i), '(exp)')
+                    if (isscalar(name_in1(i))) then  ! vector feature or not
+                        tmp = exp(fin1(:, i))
+                        call isgoodf(tmp, name_tmp, lastop_tmp, compl_tmp, dimtmp, nf)
+                    else
+                        tmp_vf = exp(vfeat(:, :, nint(fin1(1, i))))
+                        call isgoodvf(tmp_vf, name_tmp, lastop_tmp, compl_tmp, dimtmp, nf)
+                    end if
                 end if
-            end if
             END IF
 
             ! exp-
             IF (index(op, '(exp-)') /= 0) then
-            if (index(lastop_in1(i), '(exp') == 0 .and. index(lastop_in1(i), '(log)') == 0) then ! avoid exp(exp( and exp(log(
-                lastop_tmp = '(exp-)'
-                name_tmp = 'exp(-'//trim(adjustl(name_in1(i)))//')'
-                dimtmp = dimcomb(dim_in1(:, i), dim_in1(:, i), '(exp-)')
-                if (isscalar(name_in1(i))) then  ! vector feature or not
-                    tmp = exp(-fin1(:, i))
-                    call isgoodf(tmp, name_tmp, lastop_tmp, compl_tmp, dimtmp, nf)
-                else
-                    tmp_vf = exp(-vfeat(:, :, nint(fin1(1, i))))
-                    call isgoodvf(tmp_vf, name_tmp, lastop_tmp, compl_tmp, dimtmp, nf)
+                if (index(lastop_in1(i), '(exp') == 0 .and. index(lastop_in1(i), '(log)') == 0) then 
+                    ! avoid exp(exp( and exp(log(
+                    lastop_tmp = '(exp-)'
+                    name_tmp = 'exp(-'//trim(adjustl(name_in1(i)))//')'
+                    dimtmp = dimcomb(dim_in1(:, i), dim_in1(:, i), '(exp-)')
+                    if (isscalar(name_in1(i))) then  ! vector feature or not
+                        tmp = exp(-fin1(:, i))
+                        call isgoodf(tmp, name_tmp, lastop_tmp, compl_tmp, dimtmp, nf)
+                    else
+                        tmp_vf = exp(-vfeat(:, :, nint(fin1(1, i))))
+                        call isgoodvf(tmp_vf, name_tmp, lastop_tmp, compl_tmp, dimtmp, nf)
+                    end if
                 end if
-            end if
             END IF
 
             ! ^-1
@@ -953,7 +963,8 @@ contains
             ! element-wise operations between vector features
             do j = 1, nfin2
 
-                if (j - (ntot - nthis) > 0 .and. j - (ntot - nthis) <= i) cycle
+                if (j - (ntot - nthis) > 0 .and. j - (ntot - nthis) <= i) cycle 
+                ! avoid double counting
 
                 counter = counter + 1
                 compl_tmp = compl_in1(i) + compl_in2(j) + 1
@@ -1266,6 +1277,9 @@ contains
             goodf = .false. ! constant feature.
             return
         end if
+
+        ! we can check the feature unit here
+
         maxabs = maxval(abs(feat(mm1:mm2)))
         if (maxabs > 1d50 .or. maxabs <= 1d-50) then
             goodf = .false. ! intinity or zero
@@ -1281,6 +1295,7 @@ contains
             if (ptype == 1) scoretmp = sis_score(feat, trainy_c)
             if (ptype == 2) scoretmp = sis_score(feat, trainy) !classification
         else if (nreaction > 0) then
+            !wh reaction ML
             ! create reaction-feature
             do i = 1, nreaction
                 react_feat(i) = sum(react_coeff(i, :)*feat([react_speciesID(i, :)]))
@@ -1294,6 +1309,7 @@ contains
 
         !----
         if (nreject > 0) then
+            !wh find the rejected feature using bisection, reject is sorted
             name_feat = adjustl(name_feat)
             lsame = .false.
             i = 0; j = nreject; k = i + ceiling((j - i)/2.0)
