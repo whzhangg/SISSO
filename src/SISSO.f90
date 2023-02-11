@@ -54,6 +54,7 @@ program SISSO
     allocate (ngroup(ntask, 1000))  ! for classification, # samples in each group of a task
     allocate (isconvex(ntask, 1000))
     allocate (feature_units(ndimtype, nsf + nvf)) 
+    allocate (target_unit(ndimtype)) !WH
     !wh ndimtype: num of different units, nsf: num of scalar features, nvf: num of vector features
     call read_para_b
     if (nreaction > 0) then
@@ -159,6 +160,7 @@ program SISSO
     deallocate (ngroup)
     deallocate (isconvex)
     deallocate (feature_units)
+    deallocate (target_unit) !WH
     deallocate (prop_y)
     deallocate (psfeat)
     deallocate (pfname)
@@ -458,7 +460,7 @@ contains
     subroutine read_para_b
         ! get the input for nsample and funit
         integer*8 i, j, k, kk, l, ll
-
+        integer*8 nline_units  !WH
         ! nsample
         nsample = 0
         ngroup = 0
@@ -510,13 +512,38 @@ contains
             end if
         end do
 
+        target_unit = 0.d0 !WH
         inquire (file='feature_units', exist=fexist) ! detect if the file 'feature_units' exists
         if (fexist) then
-            open (1, file='feature_units', status='old')
-            do i = 1, nsf + nvf
-                read (1, *) feature_units(:, i)   ! one rwo, one feature
-            end do
-            close (1)
+            nline_units = 0
+            open (1, file = 'feature_units', status = 'old')
+            do
+                read(1, *, END = 10)
+                nline_units = nline_units + 1
+            end do 
+        
+10          rewind(1)
+            if (nline_units == nsf + nvf) then
+                do i = 1, nline_units
+                    read (1, *) feature_units(:, i)
+                end do
+            else if (nline_units == nsf + nvf + 1) then
+                use_yunit = .true.
+                read (1, *) target_unit
+                do i = 1, nsf + nvf
+                    read (1, *) feature_units(:, i)
+                end do 
+            else 
+                stop 'Number of features in the feature file are not correct  !!!'
+            end if 
+
+            close(1)    
+            !open (1, file='feature_units', status='old')
+            !do i = 1, nsf + nvf
+            !    read (1, *) feature_units(:, i)   ! one rwo, one feature
+            !end do
+            !close (1)
+
         end if
 
         return
@@ -670,6 +697,7 @@ contains
         L1_weighted = .false.     ! weighted observations? (provide file prop.weight if yes)
         nsis = 0
         !----------------------
+        use_yunit = .false.
 
     end subroutine
 
@@ -712,6 +740,10 @@ contains
         do i = 1, nsf + nvf
             write (9, 2002) feature_units(:, i)
         end do
+        if (use_yunit) then !WH
+            write (9, '(a)') 'Units of the target:'
+            write (9, 2002) target_unit
+        end if
         write (9, '(a,e15.5)') 'The feature will be discarded if the minimum of the maximal abs. value in it <', fmax_min
         write (9, '(a,e15.5)') 'The faature will be discarded if the maximum of the maximal abs. value in it > ', fmax_max
         if (ffdecorr) then

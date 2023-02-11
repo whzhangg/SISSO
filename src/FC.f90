@@ -55,13 +55,17 @@ contains
         !------------------------------------------------------
         allocate (trainy(npoints))
         allocate (trainy_c(npoints))
+        !wh temporary number of features
         i = max(1000, nsf + nvf)
+
+        !wh feat_in
         allocate (feat_in1(sum(nsample), i))
         allocate (name_in1(i))
         allocate (lastop_in1(i))
         allocate (dim_in1(ndimtype, i))
         allocate (complexity_in1(i))
 
+        !wh output values
         allocate (fout(sum(nsample), i))
         allocate (name_out(i))
         allocate (lastop_out(i))
@@ -70,6 +74,7 @@ contains
         if (nvf > 0) allocate (vfeat(sum(nsample), vfsize, i))
 
         if (ffdecorr) then
+            !wh feature feature correlation, default false
             if (mpisize > 1) then
                 nbasic_select = ceiling(decorr_alpha*nf_sis(iFCDI))
             else if (mpisize == 1) then
@@ -77,7 +82,7 @@ contains
             end if
         else
             if (mpisize > 1) then
-                nbasic_select = nf_sis(iFCDI)
+                nbasic_select = nf_sis(iFCDI) !wh size of the SIS-selected subspace
             else if (mpisize == 1) then
                 nbasic_select = 2*nf_sis(iFCDI)
             end if
@@ -101,6 +106,7 @@ contains
         allocate (usedup_warning(mpisize))
 
         ! initialization
+        ! assign dim_in1, feat_in1, name_in1, ...
         !------------------
         dim_in1(:, :nsf + nvf) = feature_units
         threshold_select = .false.
@@ -137,6 +143,7 @@ contains
             end if
         end if
 
+        !wh: read features to be rejected
         nreject = 0
         if (lreject .and. mpirank == 0) then
             open (fileunit, file=trim(adjustl(rejectname)), status='old')
@@ -170,13 +177,16 @@ contains
                 end if
             end do
         end if
-
+        
+        !wh: boardcast
         call mpi_bcast(nreject, 1, mpi_integer8, 0, mpi_comm_world, mpierr)
         if (mpirank /= 0 .and. nreject > 0) allocate (reject(nreject))
         if (nreject > 0) call mpi_bcast(reject, nreject*lname, mpi_character, 0, mpi_comm_world, mpierr)
 
         !------------------------------------------------------------
         ! Population Standard Deviation
+        ! wh see https://www.thoughtco.com/population-vs-sample-standard-deviations-3126372 for a 
+        ! distinction between population standard deviation and sample standard deviation
         ! For rough guess of fitting quality by comparing with RMSE
         !------------------------------------------------------------
 2000    format(a, i3.3, a, *(f10.5))
@@ -212,6 +222,7 @@ contains
         j = 0
 
         ! no combination, but to check if primary features are good to be included in the 'selected' set.
+        ! add primary features to selected and nf
         call combine(feat_in1(:, 1:i), name_in1(1:i), lastop_in1(1:i), complexity_in1(1:i), dim_in1(:, 1:i), &
                      feat_in1(:, 1:i), name_in1(1:i), lastop_in1(1:i), complexity_in1(1:i), dim_in1(:, 1:i), 'NO', j)
 
@@ -284,7 +295,9 @@ contains
 
             ! check if need more memory
             i = ntot - nthis + (nthis - mpin2(mpirank + 1) + 1)
-        if (ubound(feat_in1, 2) < i) call addm_in1(i - ubound(feat_in1, 2), feat_in1, name_in1, lastop_in1, complexity_in1, dim_in1)
+            if (ubound(feat_in1, 2) < i) then 
+                call addm_in1(i - ubound(feat_in1, 2), feat_in1, name_in1, lastop_in1, complexity_in1, dim_in1)
+            end if
 
             ! broadcast ntot-nthis
             if (ntot > nthis) then
@@ -1289,6 +1302,16 @@ contains
 
         ! not to be selected but can be used for further transformation
         if (maxabs > fmax_max .or. maxabs < fmax_min) return
+
+        if (ptype == 1 .and. use_yunit) then
+            ! not to be selected but can be used for further transformations, WH
+            if (maxval(abs(target_unit - dimens)) > 1d-8) return
+            !if (mpirank == 0) then
+            !    write(*, '(a, a)') "not selected feature: ", name_feat
+            !endif
+            !return
+            end if 
+        end if 
 
         if (nreaction == 0) then
             ! calculate the score for each feature

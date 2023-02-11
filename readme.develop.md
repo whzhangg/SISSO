@@ -32,11 +32,10 @@ Using the following makefile make development faster:
 FORTRAN = mpiifort -fp-model precise
 
 SISSO: var_global.o libsisso.o FC.o DI.o SISSO.f90
-	$(FORTRAN) $^ -o ../$@
+    $(FORTRAN) $^ -o ../$@
 
 %.o: %.f90
-	$(FORTRAN) $<
-
+    $(FORTRAN) $<
 ```
 
 ## Related code piece
@@ -78,8 +77,97 @@ if (fexist) then
 end if
 ```
 
+### Subroutine and functions in FC.f90
+
+The following are a list of functions:
+
+```fortran
+subroutine feature_construction
+     ! the main subroutine provided
+subroutine combine(
+    fin1, name_in1, lastop_in1, compl_in1, dim_in1, 
+    fin2, name_in2, lastop_in2, compl_in2, dim_in2, op, nf)
+subroutine addm_out(n)
+    ! increase array size of `fout`, `name_out`, `lastop_out`
+    ! `complexity_out` and `dim_out`
+subroutine addm_in1(
+    n, fin1, name_in1, lastop_in1, complexity_in1, dim_in1)
+    ! increase size of the input array (last dimension) by n
+subroutine addm_vf(n)
+    ! increase array size of the `vfeat` dimension by n
+    ! by first copying the vfeat to an array and then deallocate 
+    ! vfeat, followed by allocating additional size for vfeat
+subroutine writeout(phiname, i, j, k)
+    ! simply write "Total number of features in the space {k}"
+    ! Total number of features in the space phi01:             15
+subroutine update_availability(available, pavailable)
+    ! not so sure
+subroutine dup_pcheck(
+    nfpcore_this, fidentity, fname, complexity, order, available, ftype)
+subroutine sure_indep_screening(
+    nfpcore_this, available, complexity, fname, 
+    feat, sisfeat, name_sisfeat)
+subroutine dup_scheck(
+    nf, fidentity, fname, complexity, order, available, ftype)
+subroutine isgoodf(feat, name_feat, lastop, compl, dimens, nf)
+    ! call goodf() and update `nf`, `fout`, `name_out`, 
+    ! `lastop_out`, `complexity_out` and `dim_out`
+subroutine isgoodvf(feat, name_feat, lastop, compl, dimens, nf)
+    ! convert vector feature to scalar value and apply goodf()
+subroutine update_select
+
+function goodf(feat, name_feat, dimens, compl)
+    ! check feature, does two things:
+    ! 1. return true or false
+    ! 2. if not returned early, put in *_select list
+function dimcomb(dim1, dim2, op)
+    ! calculate the new unit according to the operation
+function simpler(complexity1, complexity2, name1, name2)
+    ! uniquely determine which one has lower complexity, if equal 
+    ! complexity, compare the length of the name
+    ! return integer 1 or 2
+function sis_score(feat, yyy)
+    ! correlation between a feature feat and the property yyy
+    ! return a tuple of two values
+    ! only the first value is related to regression
+function isscalar(fname)
+    ! give a feature name, return true if it is a vector feature
+function ffcorr(feat1, feat2)
+    ! correlationship coefficients
+function equivalent(score1, score2, feat1, feat2)
+    ! return true if score1 == score2 or corr(feat1, feat2) == 1
+    
+```
+
+The `rung` parameter is calculated from feature compexity, which is the number of operations that generated the feature. combination are called `rung` times during feature selection:
+
+```fortran
+if (fcomplexity == 0) then
+    rung = 0
+elseif (fcomplexity == 1) then
+    rung = 1
+elseif (fcomplexity > 1 .and. fcomplexity <= 3) then
+    rung = 2
+elseif (fcomplexity > 3 .and. fcomplexity <= 7) then
+    rung = 3
+elseif (fcomplexity > 7 .and. fcomplexity <= 15) then
+    rung = 4
+end if
+```
+
 ## Strategy to modify the code
 
 ### additional parameters
 
-We use a single additional parameters to indicate if the target unit should be considered: `logical : target_unit`
+We use a single additional parameters to indicate if the target unit should be considered: `logical : use_yunit` and an allocatable parameter `target_unit`.
+
+If `use_yunit`, we can check inside the function `goodf()`:
+
+```fortran
+if (ptype == 1 .and. use_yunit) then
+    ! not to be selected but can be used for further transformations, WH
+    if (maxval(abs(target_unit - dimens)) > 1d-8) return
+end if 
+```
+
+In feature_construction, the feature_in and feature_out are only the temperary values that are passed in feature selection stage. The selected features are only incremented in the `goodf()` function.

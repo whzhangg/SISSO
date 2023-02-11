@@ -12,9 +12,11 @@
 
 module var_global
     ! global variabls
-    use mpi
+    !use mpi
 
     implicit none
+
+    include 'mpif.h'
     real*8          lname, maxrung, maxcomb, PI
     parameter(lname=150, maxrung=20, maxcomb=10, PI=3.14159265358979d0)
     real*8          stime_FCDI, etime_FCDI, stime_FC, etime_FC, stime_DI, etime_DI
@@ -32,5 +34,8 @@ module var_global
     integer, allocatable    :: nsample(:), ngroup(:, :), isconvex(:, :), react_speciesID(:, :)
     real*8, allocatable     :: prop_y(:), psfeat(:, :), res(:), feature_units(:, :)
     real*8, allocatable     :: pvfeat(:, :, :), react_coeff(:, :)
+
+    logical         use_yunit !WH
+    real*8, allocatable     :: target_unit(:) !WH
     
 end module
