@@ -1310,7 +1310,7 @@ contains
             !    write(*, '(a, a)') "not selected feature: ", name_feat
             !endif
             !return
-            end if 
+            !end if 
         end if 
 
         if (nreaction == 0) then

@@ -513,6 +513,7 @@ contains
         end do
 
         target_unit = 0.d0 !WH
+        ! ref: https://stackoverflow.com/questions/30692424/how-can-i-read-the-number-of-lines-in-fortran-90-from-a-text-file
         inquire (file='feature_units', exist=fexist) ! detect if the file 'feature_units' exists
         if (fexist) then
             nline_units = 0
